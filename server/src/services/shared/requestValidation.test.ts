@@ -236,29 +236,7 @@ describe('validateOrigin', () => {
     expect(result).toEqual({ success: true });
   });
 
-  it('should return success true for subdomain when ALLOW_SUBDOMAINS is true', async () => {
-    // Set environment variable before any imports happen
-    vi.stubEnv('ALLOW_SUBDOMAINS', 'true');
-    
-    // Re-import the module to pick up the new environment variable
-    await vi.resetModules();
-    
-    // Re-establish the mocks after reset
-    vi.doMock('../../lib/siteConfig.js', () => ({
-      siteConfig: {
-        ensureInitialized: vi.fn(),
-        getSiteConfig: vi.fn()
-      }
-    }));
-    
-    vi.doMock('../../utils.js', () => ({
-      normalizeOrigin: vi.fn()
-    }));
-    
-    const { validateOrigin } = await import('./requestValidation.js');
-    const { siteConfig } = await import('../../lib/siteConfig.js');
-    const { normalizeOrigin } = await import('../../utils.js');
-
+  it('should return success true for subdomain (always allowed)', async () => {
     const mockSite: SiteConfigData = { 
       id: 1,
       domain: 'example.com', 
@@ -276,12 +254,9 @@ describe('validateOrigin', () => {
     const result = await validateOrigin(1, 'https://sub.example.com');
 
     expect(result).toEqual({ success: true });
-    
-    // Clean up
-    vi.unstubAllEnvs();
   });
 
-  it('should return success false for subdomain when ALLOW_SUBDOMAINS is false', async () => {
+  it('should return success true for nested subdomain', async () => {
     const mockSite: SiteConfigData = { 
       id: 1,
       domain: 'example.com', 
@@ -293,15 +268,12 @@ describe('validateOrigin', () => {
     vi.mocked(siteConfig.ensureInitialized).mockResolvedValue(undefined);
     vi.mocked(siteConfig.getSiteConfig).mockResolvedValue(mockSite);
     vi.mocked(normalizeOrigin)
-      .mockReturnValueOnce('sub.example.com') // for request origin
+      .mockReturnValueOnce('deep.nested.sub.example.com') // for request origin
       .mockReturnValueOnce('example.com'); // for site domain
 
-    const result = await validateOrigin(1, 'https://sub.example.com');
+    const result = await validateOrigin(1, 'https://deep.nested.sub.example.com');
 
-    expect(result).toEqual({ 
-      success: false, 
-      error: 'Origin mismatch. Received: https://sub.example.com' 
-    });
+    expect(result).toEqual({ success: true });
   });
 
   it('should return success false for different domain', async () => {
@@ -324,6 +296,29 @@ describe('validateOrigin', () => {
     expect(result).toEqual({ 
       success: false, 
       error: 'Origin mismatch. Received: https://different.com' 
+    });
+  });
+
+  it('should return success false for domain that contains site domain but is not a subdomain', async () => {
+    const mockSite: SiteConfigData = { 
+      id: 1,
+      domain: 'example.com', 
+      apiKey: 'test-key',
+      public: true,
+      saltUserIds: false,
+      blockBots: true
+    };
+    vi.mocked(siteConfig.ensureInitialized).mockResolvedValue(undefined);
+    vi.mocked(siteConfig.getSiteConfig).mockResolvedValue(mockSite);
+    vi.mocked(normalizeOrigin)
+      .mockReturnValueOnce('notexample.com') // for request origin
+      .mockReturnValueOnce('example.com'); // for site domain
+
+    const result = await validateOrigin(1, 'https://notexample.com');
+
+    expect(result).toEqual({ 
+      success: false, 
+      error: 'Origin mismatch. Received: https://notexample.com' 
     });
   });
 

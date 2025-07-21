@@ -3,11 +3,6 @@
  * This should only be enabled in development or testing environments
  */
 export const DISABLE_ORIGIN_CHECK = process.env.DISABLE_ORIGIN_CHECK === "true";
-/**
- * Set to true to allow subdomains of the registered domain for origin validation
- * This is useful for sites that use subdomains for different environments (e.g. staging, production)
- */
-export const ALLOW_SUBDOMAINS = process.env.ALLOW_SUBDOMAINS === "true";
 
 const searchDomains = [
   // Google and variants

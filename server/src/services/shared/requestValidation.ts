@@ -1,7 +1,7 @@
 import { apiKeyRateLimiter } from "../../lib/rateLimiter.js";
 import { siteConfig } from "../../lib/siteConfig.js";
 import { normalizeOrigin } from "../../utils.js";
-import { DISABLE_ORIGIN_CHECK, ALLOW_SUBDOMAINS } from "../tracker/const.js";
+import { DISABLE_ORIGIN_CHECK } from "../tracker/const.js";
 
 /**
  * Result of API key validation
@@ -113,12 +113,9 @@ export async function validateOrigin(
         return { success: true };
       }
 
-      // If allowSubdomains is true, check if origin is a subdomain of site domain
-      if (ALLOW_SUBDOMAINS) {
-        // Check if the origin ends with "." + site domain (ensuring it's a proper subdomain)
-        if (normalizedOriginHost.endsWith(`.${normalizedSiteDomain}`)) {
-          return { success: true };
-        }
+      // Always allow subdomains - check if origin is a subdomain of site domain
+      if (normalizedOriginHost.endsWith(`.${normalizedSiteDomain}`)) {
+        return { success: true };
       }
 
       // If we get here, neither exact match nor valid subdomain
