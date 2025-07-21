@@ -59,7 +59,6 @@ export async function validateApiKey(
  * Validates if the request's origin matches the registered domain for the site
  * @param siteId The site ID from the tracking payload
  * @param requestOrigin The origin header from the request
- * @param allowSubdomains Whether to allow subdomains of the registered domain
  * @returns An object with success status and optional error message
  */
 export async function validateOrigin(
