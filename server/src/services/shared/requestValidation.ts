@@ -1,7 +1,7 @@
 import { apiKeyRateLimiter } from "../../lib/rateLimiter.js";
 import { siteConfig } from "../../lib/siteConfig.js";
 import { normalizeOrigin } from "../../utils.js";
-import { DISABLE_ORIGIN_CHECK } from "../tracker/const.js";
+import { DISABLE_ORIGIN_CHECK, ALLOW_SUBDOMAINS } from "../tracker/const.js";
 
 /**
  * Result of API key validation
@@ -54,15 +54,17 @@ export async function validateApiKey(
   }
 }
 
+
 /**
  * Validates if the request's origin matches the registered domain for the site
  * @param siteId The site ID from the tracking payload
  * @param requestOrigin The origin header from the request
+ * @param allowSubdomains Whether to allow subdomains of the registered domain
  * @returns An object with success status and optional error message
  */
 export async function validateOrigin(
   siteId: string | number,
-  requestOrigin?: string
+  requestOrigin?: string,
 ): Promise<OriginValidationResult> {
   try {
     // If origin checking is disabled, return success
@@ -107,15 +109,24 @@ export async function validateOrigin(
       const normalizedOriginHost = normalizeOrigin(requestOrigin);
       const normalizedSiteDomain = normalizeOrigin(`https://${siteDomain}`);
 
-      // Check if the normalized domains match
-      if (normalizedOriginHost !== normalizedSiteDomain) {
-        return {
-          success: false,
-          error: `Origin mismatch. Received: ${requestOrigin}`,
-        };
+      // Check for exact match first
+      if (normalizedOriginHost === normalizedSiteDomain) {
+        return { success: true };
       }
 
-      return { success: true };
+      // If allowSubdomains is true, check if origin is a subdomain of site domain
+      if (ALLOW_SUBDOMAINS) {
+        // Check if the origin ends with "." + site domain (ensuring it's a proper subdomain)
+        if (normalizedOriginHost.endsWith(`.${normalizedSiteDomain}`)) {
+          return { success: true };
+        }
+      }
+
+      // If we get here, neither exact match nor valid subdomain
+      return {
+        success: false,
+        error: `Origin mismatch. Received: ${requestOrigin}`,
+      };
     } catch (error) {
       return {
         success: false,
