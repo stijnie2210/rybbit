@@ -241,7 +241,7 @@ export default function SignupPage() {
                   value={orgName}
                   onChange={(e) => handleOrgNameChange(e.target.value)}
                   required
-                  className="h-10 transition-all bg-neutral-800/50 border-neutral-700"
+                  className="h-10 transition-all bg-white dark:bg-neutral-800/50 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100"
                 />
               </div>
 
@@ -296,7 +296,7 @@ export default function SignupPage() {
                   value={domain}
                   onChange={(e) => setDomain(e.target.value.toLowerCase())}
                   required
-                  className="h-10 transition-all bg-neutral-800/50 border-neutral-700"
+                  className="h-10 transition-all bg-white dark:bg-neutral-800/50 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100"
                 />
                 <p className="text-xs text-muted-foreground">Enter the domain of the website you want to track</p>
               </div>

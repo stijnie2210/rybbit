@@ -42,10 +42,10 @@ function Card({ icon, title, description, href }: CardProps) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex flex-col py-2 px-3 rounded-lg bg-neutral-850 border border-neutral-750 hover:bg-neutral-900 transition-all duration-200 hover:shadow-lg"
+      className="group flex flex-col py-2 px-3 rounded-lg bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-750 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all duration-200 hover:shadow-lg"
     >
       <div className="flex items-center gap-2">
-        <div className="text-neutral-300 group-hover:text-emerald-400 transition-colors">{icon}</div>
+        <div className="text-neutral-500 dark:text-neutral-300 group-hover:text-emerald-400 transition-colors">{icon}</div>
         <h3 className="font-medium text-xs text-neutral-900 dark:text-neutral-100">{title}</h3>
       </div>
       {description && <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-2">{description}</p>}

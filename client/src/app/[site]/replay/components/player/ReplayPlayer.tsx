@@ -100,7 +100,7 @@ export function ReplayPlayer({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8">
+      <div className="flex flex-col items-center justify-center h-full p-8 bg-white dark:bg-neutral-950">
         <div className="text-red-500 mb-4">
           Error loading replay: {(error as Error).message}
         </div>
@@ -110,7 +110,7 @@ export function ReplayPlayer({
 
   if (isLoading || !data) {
     return (
-      <div className="bg-black h-full flex items-center justify-center">
+      <div className="bg-white dark:bg-neutral-950 h-full flex items-center justify-center">
         <ThreeDotLoader className="w-full" />
       </div>
     );
@@ -118,7 +118,7 @@ export function ReplayPlayer({
 
   return (
     <div
-      className="flex flex-col bg-neutral-950 overflow-hidden"
+      className="flex flex-col bg-white dark:bg-neutral-950 overflow-hidden"
       style={{ width: width, height: height }}
     >
       <ReplayPlayerTopbar />

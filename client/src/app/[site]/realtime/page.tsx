@@ -28,9 +28,9 @@ export default function RealtimePage() {
 
         <div className="absolute top-2 left-2 md:top-4 md:left-4 flex flex-row gap-2 items-start">
           <MobileSidebar />
-          <div className="flex flex-col p-2 md:p-3 bg-neutral-900 rounded-lg shadow-lg border border-neutral-750 w-[300px] md:w-[400px]">
+          <div className="flex flex-col p-2 md:p-3 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-750 w-[300px] md:w-[400px]">
             <div className="p-2">
-              <div className="text-sm text-gray-400 flex gap-2 text-nowrap items-center">
+              <div className="text-sm text-neutral-700 dark:text-gray-400 flex gap-2 text-nowrap items-center">
                 <div className="flex justify-center">
                   <span className="relative flex h-3 w-3">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
@@ -55,7 +55,7 @@ export default function RealtimePage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="text-3xl md:text-5xl font-bold flex items-center gap-2">
+              <div className="text-3xl md:text-5xl font-bold flex items-center gap-2 text-neutral-900 dark:text-white">
                 {<NumberFlow respectMotionPreference={false} value={data?.count ?? 0} />}
               </div>
             </div>

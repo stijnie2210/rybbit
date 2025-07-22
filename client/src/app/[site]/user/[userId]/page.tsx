@@ -61,7 +61,7 @@ export default function UserPage() {
           <Avatar size={40} name={userId as string} />
           {userId?.slice(0, 10)}
         </h1>
-        <div className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-750 text-sm mb-3">
+        <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-750 text-sm mb-3">
           {isLoading ? (
             // Skeleton loading state for user info
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -92,25 +92,25 @@ export default function UserPage() {
                   maxLength={24}
                   className="inline-flex text-neutral-300"
                 /> */}
-                <span className="text-neutral-100">Country:</span>
-                <div className="text-neutral-300 flex gap-1 items-center">
+                <span className="text-neutral-700 dark:text-neutral-100">Country:</span>
+                <div className="text-neutral-900 dark:text-neutral-300 flex gap-1 items-center">
                   <CountryFlag country={data?.country || ""} />
                   {data?.country ? getCountryName(data.country) : "N/A"}
                 </div>
-                <span className=" text-neutral-100">Region:</span>
-                <div className="text-neutral-300">
+                <span className="text-neutral-700 dark:text-neutral-100">Region:</span>
+                <div className="text-neutral-900 dark:text-neutral-300">
                   {data?.region ? getRegionName(data.region) : "N/A"}
                 </div>
-                <span className=" text-neutral-100">City:</span>
-                <div className="text-neutral-300">{data?.city ?? "N/A"}</div>
-                <span className=" text-neutral-100">Language:</span>
-                <div className="text-neutral-300">
+                <span className="text-neutral-700 dark:text-neutral-100">City:</span>
+                <div className="text-neutral-900 dark:text-neutral-300">{data?.city ?? "N/A"}</div>
+                <span className="text-neutral-700 dark:text-neutral-100">Language:</span>
+                <div className="text-neutral-900 dark:text-neutral-300">
                   {data?.language ? getLanguageName(data.language) : "N/A"}
                 </div>
               </div>
               <div className="grid grid-cols-[110px_1fr] gap-2">
-                <span className=" text-neutral-100">Device Type:</span>
-                <div className="text-neutral-300 flex gap-1 items-center">
+                <span className="text-neutral-700 dark:text-neutral-100">Device Type:</span>
+                <div className="text-neutral-900 dark:text-neutral-300 flex gap-1 items-center">
                   {data?.device_type === "Desktop" && (
                     <Monitor className="w-4 h-4" />
                   )}
@@ -122,16 +122,16 @@ export default function UserPage() {
                   )}
                   {data?.device_type}
                 </div>
-                <span className=" text-neutral-100">Browser:</span>
-                <div className="flex gap-1 text-neutral-300 items-center">
+                <span className="text-neutral-700 dark:text-neutral-100">Browser:</span>
+                <div className="flex gap-1 text-neutral-900 dark:text-neutral-300 items-center">
                   <Browser browser={data?.browser || "Unknown"} />
                   {data?.browser}
                   {data?.browser_version && (
                     <span className="ml-1">v{data?.browser_version}</span>
                   )}
                 </div>
-                <span className="text-neutral-100">OS:</span>
-                <div className="flex gap-1 text-neutral-300 items-center">
+                <span className="text-neutral-700 dark:text-neutral-100">OS:</span>
+                <div className="flex gap-1 text-neutral-900 dark:text-neutral-300 items-center">
                   <OperatingSystem os={data?.operating_system || ""} />
                   {data?.operating_system}
                   {data?.operating_system_version && (
@@ -140,8 +140,8 @@ export default function UserPage() {
                     </span>
                   )}
                 </div>
-                <span className="text-neutral-100">Screen Size:</span>
-                <div className="flex gap-1 text-neutral-300">
+                <span className="text-neutral-700 dark:text-neutral-100">Screen Size:</span>
+                <div className="flex gap-1 text-neutral-900 dark:text-neutral-300">
                   {data?.screen_width} x {data?.screen_height}
                 </div>
               </div>
@@ -155,7 +155,7 @@ export default function UserPage() {
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
-                  className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-750 flex-grow"
+                  className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-750 flex-grow"
                 >
                   <div className="text-xs text-neutral-400 flex items-center gap-1">
                     <Skeleton className="w-4 h-4" />
@@ -168,7 +168,7 @@ export default function UserPage() {
           ) : (
             // Actual data
             <>
-              <div className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-750 flex-grow">
+              <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-750 flex-grow">
                 <div className="text-xs text-neutral-400 flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   Avg. Session Duration
@@ -177,28 +177,28 @@ export default function UserPage() {
                   {data?.duration ? formatDuration(data.duration) : "N/A"}
                 </div>
               </div>
-              <div className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-800  flex-grow">
+              <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-800 flex-grow">
                 <div className="text-xs text-neutral-400 flex items-center gap-1">
                   <Files className="w-4 h-4" />
                   Sessions
                 </div>
                 <div className="font-semibold">{data?.sessions}</div>
               </div>
-              <div className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-800  flex-grow">
+              <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-800 flex-grow">
                 <div className="text-xs text-neutral-400 flex items-center gap-1">
                   <FileText className="w-4 h-4" />
                   Pageviews
                 </div>
                 <div className="font-semibold">{data?.pageviews}</div>
               </div>
-              <div className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-800  flex-grow">
+              <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-800 flex-grow">
                 <div className="text-xs text-neutral-400 flex items-center gap-1">
                   <MousePointerClick className="w-4 h-4" />
                   Events
                 </div>
                 <div className="font-semibold">{data?.events}</div>
               </div>
-              <div className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-800  flex-grow">
+              <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-800 flex-grow">
                 <div className="text-xs text-neutral-400 flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   First Seen
@@ -209,7 +209,7 @@ export default function UserPage() {
                     .toLocaleString(DateTime.DATETIME_SHORT)}
                 </div>
               </div>
-              <div className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-800  flex-grow">
+              <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-800 flex-grow">
                 <div className="text-xs text-neutral-400 flex items-center gap-1">
                   <CalendarCheck className="w-4 h-4" />
                   Last Seen
@@ -224,7 +224,7 @@ export default function UserPage() {
           )}
         </div>
       </div>
-      <div className="bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-800 h-[150px]">
+      <div className="bg-white dark:bg-neutral-900 p-3 rounded-lg flex flex-col gap-1 border border-neutral-200 dark:border-neutral-800 h-[150px]">
         <VisitCalendar sessionCount={sessionCount?.data ?? []} />
       </div>
 

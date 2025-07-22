@@ -40,7 +40,7 @@ export function AuthInput({
         value={value}
         onChange={onChange}
         required={required}
-        className="h-10 transition-all bg-neutral-800/50 border-neutral-700"
+        className="h-10 transition-all bg-white dark:bg-neutral-800/50 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100"
         minLength={type === "password" ? 8 : undefined}
       />
     </div>

@@ -50,9 +50,8 @@ export function ReplayCard({ replay }: { replay: SessionReplayListItem }) {
   return (
     <div
       className={cn(
-        "bg-neutral-900 border-b border-neutral-800 p-3 hover:bg-neutral-800/80 transition-colors cursor-pointer w-[200px]",
-        // "bg-neutral-900 border border-neutral-800 rounded-lg p-3 hover:bg-neutral-800/50 transition-colors cursor-pointer",
-        sessionId === replay.session_id && "bg-neutral-800/80"
+        "bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 p-3 hover:bg-neutral-100 dark:hover:bg-neutral-800/80 transition-colors cursor-pointer w-[200px] text-neutral-900 dark:text-neutral-200",
+        sessionId === replay.session_id && "bg-neutral-100 dark:bg-neutral-800/80"
       )}
       onClick={() => {
         setSessionId(replay.session_id);
@@ -62,7 +61,7 @@ export function ReplayCard({ replay }: { replay: SessionReplayListItem }) {
         {/* <div className="text-xs text-neutral-500">
           {replay.user_id.slice(0, 10)}...
         </div> */}
-        <div className="text-xs  text-neutral-400">
+        <div className="text-xs text-neutral-500 dark:text-neutral-400">
           {startTime.toRelative()}
         </div>
         {duration && (
@@ -73,14 +72,14 @@ export function ReplayCard({ replay }: { replay: SessionReplayListItem }) {
         )}
       </div>
 
-      <div className="text-xs text-neutral-200 truncate mb-2">
+      <div className="text-xs text-neutral-700 dark:text-neutral-200 truncate mb-2">
         {replay.page_url
           .replace("https://", "")
           .replace("http://", "")
           .replace("www.", "")}
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-neutral-400">
+      <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
         <CountryFlagTooltipIcon
           country={replay.country}
           city={replay.city}
@@ -102,7 +101,7 @@ export function ReplayCard({ replay }: { replay: SessionReplayListItem }) {
 
         <Badge
           variant="outline"
-          className="flex items-center gap-1 bg-neutral-800 text-gray-300"
+          className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-gray-300"
         >
           <MousePointerClick className="w-4 h-4 text-amber-500" />
           <span>{formatter(replay.event_count)}</span>

@@ -78,15 +78,15 @@ export function RealtimeChart() {
         const currentY = Number(value);
 
         return (
-          <div className="bg-neutral-950 p-2 rounded-md text-xs">
-            <div className="font-semibold mb-1">
+          <div className="bg-white dark:bg-neutral-950 p-2 rounded-md text-xs border border-neutral-200 dark:border-neutral-800 shadow">
+            <div className="font-semibold mb-1 text-neutral-900 dark:text-white">
               {currentTime.isValid
                 ? currentTime.toFormat("h:mm")
                 : "Invalid Time"}
             </div>
             <div className="flex justify-between items-center">
-              <span className="font-medium">{currentY.toLocaleString()}</span>
-              <span className="text-muted-foreground ml-1">{id}</span>
+              <span className="font-bold text-neutral-900 dark:text-white">{currentY.toLocaleString()}</span>
+              <span className="text-neutral-500 dark:text-neutral-400 ml-1">{id}</span>
             </div>
           </div>
         );

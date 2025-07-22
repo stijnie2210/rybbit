@@ -55,8 +55,8 @@ function EventCard({ event }: { event: Event }) {
       target="_blank"
       rel="noopener noreferrer"
     >
-      <div className="mb-3 rounded-lg bg-neutral-850/50 border border-neutral-800 overflow-hidden p-3 flex flex-col filter backdrop-blur-sm hover:bg-neutral-800/70 transition-all duration-200">
-        <div className="flex items-center gap-2 text-sm text-neutral-100 mb-2">
+      <div className="mb-3 rounded-lg bg-white dark:bg-neutral-850/50 border border-neutral-200 dark:border-neutral-800 overflow-hidden p-3 flex flex-col filter backdrop-blur-sm hover:bg-neutral-100 dark:hover:bg-neutral-800/70 transition-all duration-200">
+        <div className="flex items-center gap-2 text-sm text-neutral-900 dark:text-neutral-100 mb-2">
           <div className="flex items-center gap-2">
             {isPageview ? (
               <FileText className="w-4 h-4 text-blue-500" />
@@ -156,8 +156,8 @@ function EventCard({ event }: { event: Event }) {
           </div> */}
 
           {/* Time information */}
-          <div className="flex items-center text-xs text-gray-300">
-            <span className="text-gray-400">{eventTime.toRelative()}</span>
+          <div className="flex items-center text-xs text-neutral-500 dark:text-gray-300">
+            <span className="text-neutral-400 dark:text-gray-400">{eventTime.toRelative()}</span>
           </div>
         </div>
       </div>
@@ -202,7 +202,7 @@ function EventCardSkeleton() {
   // Create multiple skeletons for a realistic loading state
   const skeletons = Array.from({ length: 5 }).map((_, index) => (
     <div
-      className="mb-3 rounded-lg bg-neutral-850/50 border border-neutral-800 overflow-hidden p-3 flex flex-col filter backdrop-blur-sm"
+      className="mb-3 rounded-lg bg-white dark:bg-neutral-850/50 border border-neutral-200 dark:border-neutral-800 overflow-hidden p-3 flex flex-col filter backdrop-blur-sm"
       key={index}
     >
       {/* Title row */}

@@ -36,7 +36,7 @@ export function ReplayPlayerControls({
   onSpeedChange,
 }: ReplayPlayerControlsProps) {
   return (
-    <div className="border border-neutral-800 p-2 pb-3 bg-neutral-900 rounded-b-lg pt-6">
+    <div className="border border-neutral-200 dark:border-neutral-800 p-2 pb-3 bg-white dark:bg-neutral-900 rounded-b-lg pt-6">
       <div className="flex items-center">
         <Button
           variant="ghost"
@@ -62,7 +62,7 @@ export function ReplayPlayerControls({
             className="w-full"
           />
         </div>
-        <div className="text-xs text-neutral-300 w-20 text-center">
+        <div className="text-xs text-neutral-700 dark:text-neutral-300 w-20 text-center">
           {formatTime(currentTime)} / {formatTime(duration)}
         </div>
 

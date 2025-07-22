@@ -67,10 +67,10 @@ export function EventLogItem({ event }: EventLogItemProps) {
   }
 
   return (
-    <div className="mb-3 rounded-lg bg-neutral-850/50 border border-neutral-800 overflow-hidden p-3 hover:bg-neutral-800/70 transition-all duration-200">
+    <div className="mb-3 rounded-lg bg-white dark:bg-neutral-850/50 border border-neutral-200 dark:border-neutral-800 overflow-hidden p-3 hover:bg-neutral-100 dark:hover:bg-neutral-800/70 transition-all duration-200">
       <div className="flex flex-col space-y-2">
         {/* Single row with event type, name/path, device info, and timestamp */}
-        <div className="flex items-center gap-2 text-sm text-neutral-100">
+        <div className="flex items-center gap-2 text-sm text-neutral-900 dark:text-neutral-100">
           {/* Left side content */}
           <div className="flex items-center gap-2 flex-grow min-w-0">
             {/* Event type icon */}
@@ -157,7 +157,7 @@ export function EventLogItem({ event }: EventLogItemProps) {
             >
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-sm font-mono text-neutral-400 hover:text-neutral-300">
+                  <span className="text-sm font-mono text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
                     {event.user_id.substring(0, 8)}
                   </span>
                 </TooltipTrigger>
@@ -169,7 +169,7 @@ export function EventLogItem({ event }: EventLogItemProps) {
           </div>
 
           {/* Timestamp (right-aligned) */}
-          <div className="text-sm flex-shrink-0 text-neutral-400 ml-auto">
+          <div className="text-sm flex-shrink-0 text-neutral-500 dark:text-neutral-400 ml-auto">
             {eventTime.toRelative()}
           </div>
         </div>
@@ -181,9 +181,9 @@ export function EventLogItem({ event }: EventLogItemProps) {
               <Badge
                 key={key}
                 variant="outline"
-                className="px-1.5 py-0 h-5 text-xs bg-neutral-800 text-neutral-100 font-medium"
+                className="px-1.5 py-0 h-5 text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium"
               >
-                <span className="text-neutral-300 font-light mr-1">{key}:</span>{" "}
+                <span className="text-neutral-500 dark:text-neutral-300 font-light mr-1">{key}:</span>{" "}
                 {String(value)}
               </Badge>
             ))}
@@ -202,7 +202,7 @@ export const EventLogItemSkeleton = memo(() => {
   };
 
   return (
-    <div className="mb-3 rounded-lg bg-neutral-850/50 border border-neutral-800 overflow-hidden p-3">
+    <div className="mb-3 rounded-lg bg-white dark:bg-neutral-850/50 border border-neutral-200 dark:border-neutral-800 overflow-hidden p-3">
       <div className="flex flex-col space-y-2">
         {/* Single row skeleton */}
         <div className="flex items-center gap-2">

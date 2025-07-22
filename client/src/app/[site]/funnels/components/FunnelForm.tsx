@@ -225,10 +225,10 @@ export function FunnelForm({
               {steps.map((step, index) => (
                 <div
                   key={index}
-                  className="flex flex-col space-y-2 border border-neutral-750 p-4 rounded-lg bg-neutral-850"
+                  className="flex flex-col space-y-2 border border-neutral-200 dark:border-neutral-750 p-4 rounded-lg bg-white dark:bg-neutral-850"
                 >
                   <div className="flex items-start gap-2">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full border border-neutral-400 bg-neutral-750 flex items-center justify-center text-xs mt-2">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full border border-neutral-300 dark:border-neutral-400 bg-neutral-100 dark:bg-neutral-750 flex items-center justify-center text-xs mt-2 text-neutral-700 dark:text-neutral-200">
                       {index + 1}
                     </div>
                     <Select
@@ -237,7 +237,7 @@ export function FunnelForm({
                         updateStepType(index, value as "page" | "event")
                       }
                     >
-                      <SelectTrigger className="min-w-[80px] max-w-[80px] dark:border-neutral-700">
+                      <SelectTrigger className="min-w-[80px] max-w-[80px] border-neutral-200 dark:border-neutral-700">
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -255,7 +255,7 @@ export function FunnelForm({
                               : "Event name"
                           }
                           value={step.value}
-                          className="dark:border-neutral-700"
+                          className="border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 bg-white dark:bg-neutral-850"
                           onChange={(e) =>
                             updateStep(index, "value", e.target.value)
                           }
@@ -270,7 +270,7 @@ export function FunnelForm({
                       </div>
                       <Input
                         placeholder="Label (optional)"
-                        className="dark:border-neutral-700"
+                        className="border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 bg-white dark:bg-neutral-850"
                         value={step.name || ""}
                         onChange={(e) =>
                           updateStep(index, "name", e.target.value)
@@ -297,7 +297,7 @@ export function FunnelForm({
                             <div className="grid grid-cols-2 gap-2 mt-2">
                               <Input
                                 placeholder="Property key"
-                                className="dark:border-neutral-700"
+                                className="border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 bg-white dark:bg-neutral-850"
                                 value={step.eventPropertyKey || ""}
                                 onChange={(e) =>
                                   updateStep(
@@ -309,7 +309,7 @@ export function FunnelForm({
                               />
                               <Input
                                 placeholder="Property value"
-                                className="dark:border-neutral-700"
+                                className="border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 bg-white dark:bg-neutral-850"
                                 value={
                                   step.eventPropertyValue !== undefined
                                     ? String(step.eventPropertyValue)

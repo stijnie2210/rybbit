@@ -68,7 +68,7 @@ export function ReplayList() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900 flex flex-col">
+      <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-col">
         <div className="flex items-center gap-2 p-2">
           <div className="text-xs text-neutral-400">Min Duration</div>
           <div className="flex items-center gap-1">
@@ -83,7 +83,7 @@ export function ReplayList() {
           </div>
         </div>
       </div>
-      <div className="rounded-lg border border-neutral-800 flex flex-col">
+      <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-col">
         <ScrollArea className="h-[calc(100vh-178px)]">
           {isLoading ? (
             Array.from({ length: 20 }).map((_, index) => (

@@ -92,14 +92,24 @@ export function EventLog() {
       {/* Event list */}
       <div ref={containerRef} className="max-h-[80vh] overflow-y-auto pr-2">
         {allEvents.map((event, index) => (
-          <EventLogItem key={`${event.timestamp}-${index}`} event={event} />
+          <div
+            key={`${event.timestamp}-${index}`}
+            className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md"
+          >
+            <EventLogItem event={event} />
+          </div>
         ))}
 
         {/* Loading state for next page */}
         {hasNextPage && (
           <div className="py-2">
             {Array.from({ length: 3 }).map((_, index) => (
-              <EventLogItemSkeleton key={`next-page-${index}`} />
+              <div
+                key={`next-page-${index}`}
+                className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md"
+              >
+                <EventLogItemSkeleton />
+              </div>
             ))}
           </div>
         )}
