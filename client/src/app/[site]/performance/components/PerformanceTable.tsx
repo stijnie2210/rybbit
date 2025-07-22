@@ -165,14 +165,6 @@ export function PerformanceTable({ dimension, title }: PerformanceTableProps) {
             <div
               className="max-w-[300px] truncate flex items-center gap-2 cursor-pointer hover:underline text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors px-1 py-0.5"
               onClick={handleClick}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  handleClick(e);
-                }
-              }}
-              role="button"
-              aria-pressed="false"
             >
               {dimension === "country" && value ? (
                 <>

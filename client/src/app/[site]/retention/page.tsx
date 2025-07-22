@@ -240,7 +240,7 @@ export default function RetentionPage() {
                           return (
                             <div
                               key={`${cohortPeriod}-period-${index}`}
-                              className="m-[2px] text-center flex items-center justify-center font-medium transition-colors duration-150 rounded-md"
+                              className="m-[2px] text-center flex items-center justify-center font-medium transition-colors duration-150 bg-neutral-100 dark:bg-neutral-900 rounded-md"
                               style={{
                                 backgroundColor,
                                 color: textColor,

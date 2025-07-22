@@ -1,7 +1,6 @@
 "use client";
 
 import QueryProvider from "@/providers/QueryProvider";
-import ThemeToggle from "../components/ThemeToggle";
 import { Inter } from "next/font/google";
 import { Toaster } from "../components/ui/sonner";
 import { TooltipProvider } from "../components/ui/tooltip";
@@ -33,7 +32,6 @@ export default function RootLayout({
             inter.className
           )}
         >
-          <ThemeToggle />
           <QueryProvider>
             <OrganizationInitializer />
             <AuthenticationGuard />

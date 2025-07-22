@@ -74,7 +74,7 @@ export function ReplayPlayerTopbar() {
       <div className="flex items-center justify-between min-w-0">
         {/* Left side: Page path with external link */}
         <Link
-          className="text-xs text-neutral-800 dark:text-neutral-300 truncate flex-1 min-w-0 flex items-center hover:underline"
+          className="text-xs text-neutral-700 dark:text-neutral-300 truncate flex-1 min-w-0 flex items-center hover:underline"
           href={pageUrl}
           target="_blank"
           title={`Open ${pageUrl} in new tab`}

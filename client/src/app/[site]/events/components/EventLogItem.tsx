@@ -183,7 +183,7 @@ export function EventLogItem({ event }: EventLogItemProps) {
                 variant="outline"
                 className="px-1.5 py-0 h-5 text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium"
               >
-                <span className="text-neutral-500 dark:text-neutral-300 mr-1">{key}:</span>{" "}
+                <span className="text-neutral-500 dark:text-neutral-300 font-light mr-1">{key}:</span>{" "}
                 {String(value)}
               </Badge>
             ))}

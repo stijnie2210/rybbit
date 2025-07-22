@@ -239,7 +239,7 @@ export function ReplayBreadcrumbs() {
 
   if (isLoading || !data?.events) {
     return (
-      <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 flex items-center justify-center h-[calc(100vh-120px)] bg-white dark:bg-neutral-900" aria-live="polite" role="status">
+      <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 flex items-center justify-center h-[calc(100vh-120px)] bg-white dark:bg-neutral-900">
         <Loader2 className="w-6 h-6 animate-spin text-neutral-400 dark:text-neutral-400" />
       </div>
     );
