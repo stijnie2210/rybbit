@@ -363,7 +363,6 @@ body {
   .dark {
     --background: 0 0% 8%;
     --foreground: 0 0% 98%;
-
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
@@ -377,31 +376,10 @@ body {
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 9%;
-
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
   }
-
-  /* Dark scrollbar styles */
-  /* For Webkit browsers (Chrome, Safari, newer Edge) */
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: hsl(0 0% 9%);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: hsl(0 0% 35%);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(0 0% 40%);
-  }
+  /* removed duplicate .dark block, all dark theme variables are now in the .dark block nested in :root above */
 
   /* For Firefox */
   * {
