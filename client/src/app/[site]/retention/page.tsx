@@ -206,19 +206,19 @@ export default function RetentionPage() {
               ) : data ? (
                 <div className="overflow-x-auto">
                   <div
-                    className="inline-grid gap-px bg-neutral-900 rounded-lg shadow-lg"
+                    className="inline-grid gap-px bg-neutral-200 dark:bg-neutral-900 rounded-lg shadow-lg"
                     style={{
                       gridTemplateColumns: `minmax(120px, auto) repeat(${data.maxPeriods + 1}, minmax(80px, auto))`,
                     }}
                   >
                     {/* Header Row */}
-                    <div className="p-2 text-sm font-semibold bg-neutral-900 text-neutral-100 text-center sticky left-0 z-10 border-b border-r border-neutral-700">
+                    <div className="p-2 text-sm font-semibold bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-100 text-center sticky left-0 z-10 border-b border-r border-neutral-300 dark:border-neutral-700">
                       Cohort
                     </div>
                     {periodHeaders.map((header) => (
                       <div
                         key={header}
-                        className="p-2 text-sm bg-neutral-900 text-neutral-100 text-center border-b border-neutral-700"
+                        className="p-2 text-sm bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-100 text-center border-b border-neutral-300 dark:border-neutral-700"
                       >
                         {header}
                       </div>
@@ -228,9 +228,9 @@ export default function RetentionPage() {
                     {cohortKeys.map((cohortPeriod) => (
                       <Fragment key={cohortPeriod}>
                         {/* Cohort Info Cell */}
-                        <div className="py-2 px-2 bg-neutral-900 text-sm sticky left-0 z-10 border-r border-neutral-800">
-                          <div className="whitespace-nowrap text-neutral-100">{formatDate(cohortPeriod)}</div>
-                          <div className="text-xs text-neutral-300 mt-1 whitespace-nowrap">
+                        <div className="py-2 px-2 bg-neutral-100 dark:bg-neutral-900 text-sm sticky left-0 z-10 border-r border-neutral-300 dark:border-neutral-800">
+                          <div className="whitespace-nowrap text-neutral-700 dark:text-neutral-100">{formatDate(cohortPeriod)}</div>
+                          <div className="text-xs text-neutral-400 dark:text-neutral-300 mt-1 whitespace-nowrap">
                             {data.cohorts[cohortPeriod].size.toLocaleString()} users
                           </div>
                         </div>
@@ -240,7 +240,7 @@ export default function RetentionPage() {
                           return (
                             <div
                               key={`${cohortPeriod}-period-${index}`}
-                              className="m-[2px] text-center flex items-center justify-center font-medium transition-colors duration-150 bg-neutral-900 rounded-md"
+                              className="m-[2px] text-center flex items-center justify-center font-medium transition-colors duration-150 bg-neutral-100 dark:bg-neutral-900 rounded-md"
                               style={{
                                 backgroundColor,
                                 color: textColor,

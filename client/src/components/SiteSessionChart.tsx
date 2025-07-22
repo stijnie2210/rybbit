@@ -71,19 +71,42 @@ export function SiteSessionChart({
           tickValues: 2,
           format: formatter,
         }}
-        enableGridX={false}
-        enableGridY={false}
-        enablePoints={false}
+        enableGridX={true}
+        enableGridY={true}
+        gridYValues={4}
+        enablePoints={true}
+        pointSize={6}
+        pointColor={{ theme: 'background' }}
+        pointBorderWidth={2}
+        pointBorderColor={{ from: 'serieColor' }}
         enableArea={true}
-        areaOpacity={0.3}
+        areaOpacity={0.18}
         colors={["hsl(var(--accent-400))"]}
-        theme={nivoTheme}
+        theme={{
+          ...nivoTheme,
+          axis: {
+            ...nivoTheme.axis,
+            ticks: {
+              ...nivoTheme.axis?.ticks,
+              text: {
+                ...nivoTheme.axis?.ticks?.text,
+                fill: 'hsl(var(--muted-foreground))',
+              },
+            },
+          },
+          grid: {
+            line: {
+              stroke: 'hsl(var(--muted-foreground) / 0.12)',
+              strokeWidth: 1,
+            },
+          },
+        }}
         defs={[
           {
             id: "gradientA",
             type: "linearGradient",
             colors: [
-              { offset: 0, color: "hsl(var(--accent-400))", opacity: 1 },
+              { offset: 0, color: "hsl(var(--accent-400))", opacity: 0.7 },
               { offset: 100, color: "hsl(var(--accent-400))", opacity: 0 },
             ],
           },

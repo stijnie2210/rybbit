@@ -104,16 +104,18 @@ const Stat = ({
   return (
     <div
       className={cn(
-        "flex flex-col cursor-pointer border-r border-neutral-800 last:border-r-0 text-nowrap",
-        selectedStat === id && "bg-neutral-850"
+        "flex flex-col cursor-pointer border-r border-neutral-800 last:border-r-0 text-nowrap transition-colors",
+        selectedStat === id
+          ? "bg-blue-50 text-blue-900 dark:bg-neutral-800 dark:text-white"
+          : ""
       )}
       onClick={() => setSelectedStat(id)}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
       <div className="flex flex-col px-3 py-2">
-        <div className="text-sm font-medium text-muted-foreground">{title}</div>
-        <div className="text-2xl font-medium flex gap-2 items-center justify-between">
+        <div className={cn("text-sm font-medium", selectedStat === id ? "text-blue-700 dark:text-white" : "text-muted-foreground")}>{title}</div>
+        <div className={cn("text-2xl font-medium flex gap-2 items-center justify-between", selectedStat === id ? "text-blue-900 dark:text-white" : "")}> 
           {isLoading ? (
             <>
               <Skeleton className="w-[60px] h-9 rounded-md" />

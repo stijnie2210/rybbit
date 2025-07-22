@@ -61,7 +61,7 @@ export function SessionCard({ session, onClick, userId }: SessionCardProps) {
   };
 
   return (
-    <div className="mb-3 rounded-lg bg-neutral-900 border border-neutral-800 overflow-hidden">
+    <div className="mb-3 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 overflow-hidden">
       <div className="p-3 cursor-pointer" onClick={handleCardClick}>
         <div className="flex items-center gap-2">
           <div className="hidden md:flex items-center gap-2">

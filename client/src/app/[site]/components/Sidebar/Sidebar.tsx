@@ -44,7 +44,7 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-56 bg-neutral-900 border-r border-neutral-800 flex flex-col justify-between">
+    <div className="w-56 bg-neutral-50 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col justify-between">
       <div className="flex flex-col">
         <div className="flex flex-col p-3 border-b border-neutral-800">
           <SiteSelector />
@@ -163,7 +163,7 @@ export function Sidebar() {
           <SiteSettings
             siteId={site?.siteId ?? 0}
             trigger={
-              <div className="px-3 py-2 rounded-lg transition-colors w-full text-neutral-200 hover:text-white hover:bg-neutral-800/50 cursor-pointer">
+              <div className="px-3 py-2 rounded-lg transition-colors w-full text-neutral-900 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 cursor-pointer">
                 <div className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
                   <span className="text-sm">Site Settings</span>
@@ -195,8 +195,8 @@ function SidebarLink({
         className={cn(
           "px-3 py-2 rounded-lg transition-colors w-full",
           active
-            ? "bg-neutral-800 text-white"
-            : "text-neutral-200 hover:text-white hover:bg-neutral-800/50"
+            ? "bg-blue-100 text-blue-900 dark:bg-neutral-800 dark:text-white font-semibold"
+            : "text-neutral-700 dark:text-neutral-200 hover:text-blue-900 hover:bg-blue-100 dark:hover:text-white dark:hover:bg-neutral-800"
         )}
       >
         <div className="flex items-center gap-2">

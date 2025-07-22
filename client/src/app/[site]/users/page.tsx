@@ -243,10 +243,10 @@ export default function UsersPage() {
     <DisabledOverlay message="Users" featurePath="users">
       <div className="p-2 md:p-4 max-w-[1400px] mx-auto space-y-3">
         <SubHeader availableFilters={USER_PAGE_FILTERS} />
-        <div className="rounded-md border border-neutral-800 bg-neutral-900">
+        <div className="rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
           <div className="relative overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-neutral-850 text-neutral-400 ">
+              <thead className="bg-neutral-100 dark:bg-neutral-850 text-neutral-500 dark:text-neutral-400 ">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (

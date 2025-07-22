@@ -57,7 +57,7 @@ const RowItem = ({
   return (
     <div
       key={getKey(item)}
-      className="relative h-6 flex items-center cursor-pointer hover:bg-neutral-850 group"
+      className="relative h-6 flex items-center cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-850 group"
       onClick={() => onFilterToggle(filterParameter, getValue(item))}
     >
       <div

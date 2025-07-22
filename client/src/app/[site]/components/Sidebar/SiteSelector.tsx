@@ -103,8 +103,8 @@ function SiteSelectorContent({ onSiteSelect }: { onSiteSelect: () => void }) {
                     onSiteSelect(); // Close popover immediately
                   }}
                   className={cn(
-                    "flex items-center justify-between p-2 cursor-pointer hover:bg-neutral-800/50 transition-colors rounded-md border-b border-neutral-800 last:border-b-0",
-                    isSelected && "bg-neutral-800"
+                    "flex items-center justify-between p-2 cursor-pointer transition-colors rounded-md border-b border-neutral-200 dark:border-neutral-800 last:border-b-0 hover:bg-neutral-100 dark:hover:bg-neutral-800/20",
+                    isSelected && "bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-50 font-semibold"
                   )}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -112,7 +112,7 @@ function SiteSelectorContent({ onSiteSelect }: { onSiteSelect: () => void }) {
                       domain={site.domain}
                       className="w-4 h-4 flex-shrink-0"
                     />
-                    <div className="text-sm text-white truncate">
+                    <div className={cn("text-sm truncate", isSelected ? "text-neutral-900 dark:text-neutral-50 font-semibold" : "text-neutral-700 dark:text-neutral-200") }>
                       {site.domain}
                     </div>
                   </div>
@@ -127,13 +127,13 @@ function SiteSelectorContent({ onSiteSelect }: { onSiteSelect: () => void }) {
           : Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={`skeleton-${index}`}
-                className="flex items-center justify-between p-2 animate-pulse rounded-md border-b border-neutral-800 last:border-b-0"
+                className="flex items-center justify-between p-2 animate-pulse rounded-md border-b border-neutral-200 dark:border-neutral-800 last:border-b-0 bg-neutral-200 dark:bg-neutral-850"
               >
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="w-4 h-4 bg-neutral-700 rounded flex-shrink-0"></div>
-                  <div className="h-4 bg-neutral-700 rounded w-32"></div>
+                  <div className="w-4 h-4 bg-neutral-300 dark:bg-neutral-700 rounded flex-shrink-0"></div>
+                  <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded w-32"></div>
                 </div>
-                <div className="h-3 bg-neutral-700 rounded w-20"></div>
+                <div className="h-3 bg-neutral-300 dark:bg-neutral-700 rounded w-20"></div>
               </div>
             ))}
       </div>
@@ -162,17 +162,17 @@ export function SiteSelector() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {site ? (
-          <button className="flex gap-2 items-center border border-neutral-800 rounded-lg py-1.5 px-3 justify-start cursor-pointer hover:bg-neutral-800/50 transition-colors h-[36px] w-full">
+          <button className="flex gap-2 items-center border border-neutral-200 dark:border-neutral-800 rounded-lg py-1.5 px-3 justify-start cursor-pointer bg-white text-neutral-900 hover:bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-800/50 transition-colors h-[36px] w-full">
             <Favicon domain={site.domain} className="w-5 h-5" />
-            <div className="text-white truncate text-sm flex-1 text-left">
+            <div className="truncate text-sm flex-1 text-left text-neutral-900 dark:text-neutral-50">
               {site.domain}
             </div>
             <ChevronDown className="w-4 h-4 text-neutral-400" />
           </button>
         ) : (
-          <button className="flex gap-2 border border-neutral-800 rounded-lg py-1.5 px-3 justify-start items-center h-[36px] w-full animate-pulse">
-            <div className="w-5 h-5 bg-neutral-800 rounded"></div>
-            <div className="h-4 bg-neutral-800 rounded w-24 flex-1"></div>
+          <button className="flex gap-2 border border-neutral-200 dark:border-neutral-800 rounded-lg py-1.5 px-3 justify-start items-center h-[36px] w-full animate-pulse bg-neutral-200 dark:bg-neutral-850">
+            <div className="w-5 h-5 bg-neutral-300 dark:bg-neutral-700 rounded"></div>
+            <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded w-24 flex-1"></div>
             <ChevronDown className="w-4 h-4 text-neutral-400" />
           </button>
         )}

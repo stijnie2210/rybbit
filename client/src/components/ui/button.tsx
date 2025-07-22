@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-neutral-50 text-neutral-950 border border-neutral-200 shadow hover:bg-neutral-900/90 dark:bg-neutral-850 dark:border-neutral-750 dark:text-neutral-50 dark:hover:bg-neutral-800/90 dark:hover:border-neutral-650",
+          "bg-neutral-50 text-neutral-950 border border-neutral-200 shadow hover:bg-neutral-100 dark:bg-neutral-850 dark:border-neutral-750 dark:text-neutral-50 dark:hover:bg-neutral-800/90 dark:hover:border-neutral-650",
         secondary:
           "bg-neutral-100 text-neutral-900 shadow-sm hover:bg-neutral-100/80 dark:bg-neutral-50 dark:text-neutral-800 dark:hover:bg-neutral-50/90",
         accent:

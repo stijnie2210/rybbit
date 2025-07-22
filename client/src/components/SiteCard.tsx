@@ -66,7 +66,7 @@ export function SiteCard({ siteId, domain }: SiteCardProps) {
   return (
     <div
       ref={ref}
-      className="flex flex-col rounded-lg bg-neutral-900/70 p-4 border border-neutral-800 shadow-lg hover:shadow-xl hover:border-neutral-700 transition-all duration-300 hover:translate-y-[-2px]"
+      className="flex flex-col rounded-lg bg-white/80 dark:bg-neutral-900/70 p-4 border border-neutral-200 dark:border-neutral-800 shadow-lg hover:shadow-xl hover:border-neutral-300 dark:hover:border-neutral-700 transition-all duration-300 hover:translate-y-[-2px]"
     >
       {showSkeleton ? (
         <>
@@ -123,16 +123,16 @@ export function SiteCard({ siteId, domain }: SiteCardProps) {
           </div>
 
           <div className="grid grid-cols-3 gap-2 mt-2">
-            <div className="flex flex-col gap-1 items-center bg-neutral-800/50 rounded-md p-2 hover:bg-neutral-800 transition-colors">
-              <div className="text-xs text-neutral-400">Sessions</div>
-              <div className="font-semibold">
+            <div className="flex flex-col gap-1 items-center bg-accent-50 dark:bg-accent-900/40 rounded-md p-2 border border-accent-200 dark:border-accent-700 shadow-sm hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors">
+              <div className="text-xs text-accent-700 dark:text-accent-200 font-semibold">Sessions</div>
+              <div className="font-bold text-lg text-accent-900 dark:text-accent-100">
                 {overviewData?.data?.sessions?.toLocaleString() || "0"}
               </div>
             </div>
 
-            <div className="flex flex-col gap-1 items-center bg-neutral-800/50 rounded-md p-2 hover:bg-neutral-800 transition-colors">
-              <div className="text-xs text-neutral-400">Users</div>
-              <div className="font-semibold">
+            <div className="flex flex-col gap-1 items-center bg-blue-50 dark:bg-blue-900/40 rounded-md p-2 border border-blue-200 dark:border-blue-700 shadow-sm hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors">
+              <div className="text-xs text-blue-700 dark:text-blue-200 font-semibold">Users</div>
+              <div className="font-bold text-lg text-blue-900 dark:text-blue-100">
                 {overviewData?.data?.users?.toLocaleString() || "0"}
               </div>
             </div>

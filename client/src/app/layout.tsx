@@ -23,7 +23,7 @@ export default function RootLayout({
   useStopImpersonation();
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <ReactScan />
       <TooltipProvider>
         <body

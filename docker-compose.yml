@@ -101,7 +101,7 @@ services:
     restart: unless-stopped
 
   client:
-    image: ghcr.io/rybbit-io/rybbit-client:${IMAGE_TAG:-latest}
+    image: rybbit-client:latest
     container_name: client
     build:
       context: .

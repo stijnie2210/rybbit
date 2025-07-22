@@ -78,7 +78,11 @@ export function BrowserTooltipIcon({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex-shrink-0">
+        <div
+          className={
+            "flex-shrink-0 rounded-md bg-neutral-200 dark:bg-neutral-800 transition-colors hover:bg-neutral-300 dark:hover:bg-neutral-700 p-1"
+          }
+        >
           <Browser browser={browser || "Unknown"} size={size} />
         </div>
       </TooltipTrigger>

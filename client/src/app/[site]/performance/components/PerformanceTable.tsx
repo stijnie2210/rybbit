@@ -163,7 +163,7 @@ export function PerformanceTable({ dimension, title }: PerformanceTableProps) {
 
           return (
             <div
-              className="text-white max-w-[300px] truncate flex items-center gap-2 cursor-pointer hover:underline"
+              className="max-w-[300px] truncate flex items-center gap-2 cursor-pointer hover:underline text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors px-1 py-0.5"
               onClick={handleClick}
             >
               {dimension === "country" && value ? (
@@ -481,10 +481,10 @@ export function PerformanceTable({ dimension, title }: PerformanceTableProps) {
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="border-neutral-800 hover:bg-neutral-900/50"
-                  >
+                    <TableRow
+                      key={row.id}
+                      className="border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors"
+                    >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(
