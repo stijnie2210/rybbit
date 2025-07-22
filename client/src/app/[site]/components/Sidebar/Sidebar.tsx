@@ -193,7 +193,7 @@ function SidebarLink({
     <Link href={href} className="focus:outline-none">
       <div
         className={cn(
-          "px-3 py-2 rounded-lg transition-colors w-full",
+          "px-3 py-2 rounded-lg transition-colors w-full focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-50 dark:focus-visible:ring-offset-neutral-900",
           active
             ? "bg-blue-100 text-blue-900 dark:bg-neutral-800 dark:text-white font-semibold"
             : "text-neutral-700 dark:text-neutral-200 hover:text-blue-900 hover:bg-blue-100 dark:hover:text-white dark:hover:bg-neutral-800"

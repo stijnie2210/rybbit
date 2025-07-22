@@ -123,9 +123,9 @@ export function SiteCard({ siteId, domain }: SiteCardProps) {
           </div>
 
           <div className="grid grid-cols-3 gap-2 mt-2">
-            <div className="flex flex-col gap-1 items-center bg-accent-50 dark:bg-accent-900/40 rounded-md p-2 border border-accent-200 dark:border-accent-700 shadow-sm hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors">
-              <div className="text-xs text-accent-700 dark:text-accent-200 font-semibold">Sessions</div>
-              <div className="font-bold text-lg text-accent-900 dark:text-accent-100">
+            <div className="flex flex-col gap-1 items-center bg-emerald-50 dark:bg-emerald-900/40 rounded-md p-2 border border-emerald-200 dark:border-emerald-700 shadow-sm hover:bg-emerald-100 dark:hover:bg-emerald-800 transition-colors">
+              <div className="text-xs text-emerald-700 dark:text-emerald-200 font-semibold">Sessions</div>
+              <div className="font-bold text-lg text-emerald-900 dark:text-emerald-100">
                 {overviewData?.data?.sessions?.toLocaleString() || "0"}
               </div>
             </div>

@@ -19,7 +19,13 @@ function getInitialTheme(): Theme {
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [theme, setTheme] = useState<Theme>("dark");
+
+  useEffect(() => {
+    const stored = localStorage.getItem(THEME_KEY) as Theme | null;
+    const initialTheme = stored === "light" || stored === "dark" ? stored : getSystemTheme();
+    setTheme(initialTheme);
+  }, []);
 
   useEffect(() => {
     // Set theme on html element
@@ -51,11 +57,7 @@ export default function ThemeToggle() {
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       className="p-2 rounded border bg-background text-foreground hover:bg-muted transition flex items-center justify-center"
     >
-      {theme === "dark" ? (
-        <Moon className="w-5 h-5" />
-      ) : (
-        <Sun className="w-5 h-5" />
-      )}
+      {theme === "dark" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
     </button>
   );
 }
