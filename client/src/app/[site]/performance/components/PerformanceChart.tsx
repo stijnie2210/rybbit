@@ -7,6 +7,7 @@ import { ResponsiveLine } from "@nivo/line";
 import { DateTime } from "luxon";
 import { Tilt_Warp } from "next/font/google";
 import Image from "next/image";
+import { ThemedRybbitLogo } from "../../../../components/ThemedRybbitLogo";
 import Link from "next/link";
 import { useState } from "react";
 import { useGetPerformanceTimeSeries } from "../../../../api/analytics/performance/useGetPerformanceTimeSeries";
@@ -298,7 +299,7 @@ export function PerformanceChart() {
                 tilt_wrap.className
               )}
             >
-              <Image src="/rybbit.svg" alt="Rybbit" width={20} height={20} />
+              <ThemedRybbitLogo alt="Rybbit" width={20} height={20} />
               rybbit.io
             </Link>
           </div>

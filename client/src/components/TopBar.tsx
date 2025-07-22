@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { User } from "lucide-react";
 import Image from "next/image";
+// import { ThemedRybbitTextLogo } from "./ThemedRybbitTextLogo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "../lib/auth";
@@ -22,7 +23,7 @@ export function TopBar() {
       <div className="flex items-center justify-between flex-1">
         <div className="flex items-center space-x-4">
           <Link href={session ? "/" : "https://rybbit.io"}>
-            <Image src="/rybbit-text.svg" alt="Rybbit" width={100} height={22} />
+            <Image src="/rybbit-text.svg" width={100} height={22} alt="Rybbit" />
           </Link>
         </div>
         <div className="flex items-center gap-2">

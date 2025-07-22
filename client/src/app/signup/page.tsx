@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 import Image from "next/image";
+import { ThemedRybbitTextLogo } from "../../components/ThemedRybbitTextLogo";
+import { ThemedRybbitLogo } from "../../components/ThemedRybbitLogo";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
@@ -329,7 +331,7 @@ export default function SignupPage() {
       <div className="flex justify-center items-center h-screen w-full">
         <Card className="w-full max-w-sm p-1">
           <CardHeader>
-            <Image src="/rybbit.svg" alt="Rybbit" width={32} height={32} />
+            <ThemedRybbitLogo alt="Rybbit" width={32} height={32} />
             <CardTitle className="text-2xl flex justify-center">Sign Up Disabled</CardTitle>
           </CardHeader>
           <CardContent>
@@ -368,7 +370,7 @@ export default function SignupPage() {
         {/* Logo and title above the card */}
         <div className="relative z-10 mb-6 text-center">
           <a href="https://rybbit.io" target="_blank" className="inline-block mb-2">
-            <Image src="/rybbit-text.svg" alt="Rybbit" width={150} height={34} />
+            <ThemedRybbitTextLogo width={150} height={34} alt="Rybbit" />
           </a>
           <h1 className="text-lg text-neutral-300">Get started with Rybbit</h1>
         </div>

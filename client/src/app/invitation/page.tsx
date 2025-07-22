@@ -2,6 +2,7 @@
 
 import { AlertCircle } from "lucide-react";
 import Image from "next/image";
+import { ThemedRybbitLogo } from "../../components/ThemedRybbitLogo";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ThreeDotLoader } from "../../components/Loaders";
@@ -32,7 +33,7 @@ function AuthComponent() {
   return (
     <Card className="w-full max-w-md p-1">
       <CardHeader>
-        <Image src="/rybbit.svg" alt="Rybbit" width={32} height={32} />
+        <ThemedRybbitLogo alt="Rybbit" width={32} height={32} />
         <CardTitle className="text-2xl flex justify-center">
           Join {organization}
         </CardTitle>
@@ -94,7 +95,7 @@ function AcceptInvitationInner() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <Image src="/rybbit.svg" alt="Rybbit" width={32} height={32} />
+        <ThemedRybbitLogo alt="Rybbit" width={32} height={32} />
         <CardTitle className="text-2xl flex justify-center">
           Invitation
         </CardTitle>

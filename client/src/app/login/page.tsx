@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
+import { ThemedRybbitLogo } from "../../components/ThemedRybbitLogo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -54,7 +55,7 @@ export default function Page() {
       <div></div>
       <Card className="w-full max-w-sm p-1">
         <CardHeader>
-          <Image src="/rybbit.svg" alt="Rybbit" width={32} height={32} />
+          <ThemedRybbitLogo alt="Rybbit" width={32} height={32} />
           <CardTitle className="text-2xl flex justify-center">
             Sign in
           </CardTitle>

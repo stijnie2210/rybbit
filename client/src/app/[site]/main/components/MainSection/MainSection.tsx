@@ -2,6 +2,7 @@
 import { Card, CardContent, CardLoader } from "@/components/ui/card";
 import { Tilt_Warp } from "next/font/google";
 import Image from "next/image";
+import { ThemedRybbitLogo } from "@/components/ThemedRybbitLogo";
 import Link from "next/link";
 import { useGetOverview } from "../../../../../api/analytics/useGetOverview";
 import { useGetOverviewBucketed } from "../../../../../api/analytics/useGetOverviewBucketed";
@@ -80,7 +81,7 @@ export function MainSection() {
                   tilt_wrap.className
                 )}
               >
-                <Image src="/rybbit.svg" alt="Rybbit" width={20} height={20} />
+                <ThemedRybbitLogo alt="Rybbit" width={20} height={20} />
                 rybbit.io
               </Link>
             </div>
