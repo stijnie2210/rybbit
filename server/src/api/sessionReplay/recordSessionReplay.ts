@@ -1,5 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { isIPExcluded } from "../../lib/ipUtils.js";
+import { siteConfig } from "../../lib/siteConfig.js";
 import { SessionReplayIngestService } from "../../services/replay/sessionReplayIngestService.js";
 import { validateApiKey, validateOrigin } from "../../services/shared/requestValidation.js";
 import { usageService } from "../../services/usageService.js";
@@ -82,6 +84,21 @@ export async function recordSessionReplay(
           error: originValidation.error,
         });
       }
+    }
+
+    // Make sure the site config is loaded
+    await siteConfig.ensureInitialized();
+
+    // Check if the IP should be excluded from tracking
+    const requestIP = getIpAddress(request);
+    const excludedIPs = siteConfig.getExcludedIPs(siteId);
+    
+    if (isIPExcluded(requestIP, excludedIPs)) {
+      console.log(`[SessionReplay] IP ${requestIP} excluded from tracking for site ${siteId}`);
+      return reply.status(200).send({
+        success: true,
+        message: "Session replay not recorded - IP excluded",
+      });
     }
 
     // Extract request metadata for tracking
