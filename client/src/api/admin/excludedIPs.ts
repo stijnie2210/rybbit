@@ -8,7 +8,7 @@ export interface ExcludedIPsResponse {
 }
 
 export interface UpdateExcludedIPsRequest {
-  siteId: string;
+  siteId: number;
   excludedIPs: string[];
 }
 
@@ -21,13 +21,20 @@ export interface UpdateExcludedIPsResponse {
 }
 
 // Fetch excluded IPs for a site
-export const fetchExcludedIPs = async (siteId: number): Promise<ExcludedIPsResponse> => {
+export const fetchExcludedIPs = async (siteId: string): Promise<ExcludedIPsResponse> => {
   const response = await fetch(`/api/site/${siteId}/excluded-ips`, {
     credentials: "include",
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch excluded IPs");
+    let errorMessage = "Failed to fetch excluded IPs";
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // If JSON parsing fails, use the default error message
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -50,20 +57,25 @@ export const updateExcludedIPs = async (
     }),
   });
 
-  const data = await response.json();
-
   if (!response.ok) {
-    throw new Error(data.error || "Failed to update excluded IPs");
+    let errorMessage = "Failed to update excluded IPs";
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // If JSON parsing fails, use the default error message
+    }
+    throw new Error(errorMessage);
   }
 
-  return data;
+  return response.json();
 };
 
 // Hook to fetch excluded IPs
 export const useGetExcludedIPs = (siteId: number) => {
   return useQuery({
     queryKey: ["excludedIPs", siteId],
-    queryFn: () => fetchExcludedIPs(siteId),
+    queryFn: () => fetchExcludedIPs(siteId.toString()),
     enabled: !!siteId,
   });
 };
@@ -72,10 +84,10 @@ export const useGetExcludedIPs = (siteId: number) => {
 export const useUpdateExcludedIPs = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ siteId, excludedIPs }: { siteId: number; excludedIPs: string[] }) =>
+  return useMutation<UpdateExcludedIPsResponse, Error, UpdateExcludedIPsRequest>({
+    mutationFn: ({ siteId, excludedIPs }: UpdateExcludedIPsRequest) =>
       updateExcludedIPs(siteId, excludedIPs),
-    onSuccess: (data, variables) => {
+    onSuccess: (_: UpdateExcludedIPsResponse, variables: UpdateExcludedIPsRequest) => {
       toast.success("Excluded IPs updated successfully");
       // Invalidate and refetch excluded IPs data
       queryClient.invalidateQueries({

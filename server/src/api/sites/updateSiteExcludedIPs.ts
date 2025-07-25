@@ -4,6 +4,7 @@ import { db } from "../../db/postgres/postgres.js";
 import { sites } from "../../db/postgres/schema.js";
 import { siteConfig } from "../../lib/siteConfig.js";
 import { validateIPPattern } from "../../lib/ipUtils.js";
+import { getUserHasAccessToSite } from "../../lib/auth-utils.js";
 import { eq } from "drizzle-orm";
 
 const updateExcludedIPsSchema = z.object({
@@ -26,6 +27,32 @@ export async function updateSiteExcludedIPs(request: FastifyRequest, reply: Fast
     const { siteId, excludedIPs } = validationResult.data;
     const numericSiteId = Number(siteId);
 
+    // Validate that siteId is a valid integer
+    if (!Number.isInteger(numericSiteId) || isNaN(numericSiteId) || numericSiteId <= 0) {
+      return reply.status(400).send({
+        success: false,
+        error: "Invalid site ID: must be a positive integer",
+      });
+    }
+
+    // Check if user is authenticated
+    if (!request.user?.id) {
+      return reply.status(401).send({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    // Check if user has access to this site
+    const hasAccess = await getUserHasAccessToSite(request, numericSiteId);
+    
+    if (!hasAccess) {
+      return reply.status(403).send({
+        success: false,
+        error: "Forbidden: You don't have access to this site",
+      });
+    }
+
     // Validate each IP pattern
     const validationErrors: string[] = [];
     for (const ip of excludedIPs) {
@@ -43,17 +70,20 @@ export async function updateSiteExcludedIPs(request: FastifyRequest, reply: Fast
       });
     }
 
-    // Update the database
-    await db
-      .update(sites)
-      .set({
-        excludedIPs: excludedIPs,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(sites.siteId, numericSiteId));
+    // Update the database and cache atomically
+    await db.transaction(async (tx) => {
+      // Update the database
+      await tx
+        .update(sites)
+        .set({
+          excludedIPs: excludedIPs,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(sites.siteId, numericSiteId));
 
-    // Update the cache
-    siteConfig.updateSiteExcludedIPs(numericSiteId, excludedIPs);
+      // Update the cache - if this fails, the transaction will rollback
+      siteConfig.updateSiteExcludedIPs(numericSiteId, excludedIPs);
+    });
 
     return reply.send({
       success: true,

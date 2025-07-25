@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { useGetExcludedIPs, useUpdateExcludedIPs } from "@/api/admin/excludedIPs";
+import { validateIPPattern } from "@/lib/ipValidation";
 
 interface IPExclusionManagerProps {
   siteId: number;
@@ -32,16 +33,6 @@ export function IPExclusionManager({ siteId, disabled = false }: IPExclusionMana
     }
   }, [excludedIPsData, isLoading]);
 
-  const validateIPPattern = (ip: string): boolean => {
-    if (!ip.trim()) return true; // Empty is valid (will be filtered out)
-
-    // Basic validation patterns
-    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
-    const ipv6Pattern = /^([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}(\/\d{1,3})?$/;
-    const rangePattern = /^(\d{1,3}\.){3}\d{1,3}-(\d{1,3}\.){3}\d{1,3}$/;
-
-    return ipv4Pattern.test(ip) || ipv6Pattern.test(ip) || rangePattern.test(ip);
-  };
 
   const addIPField = () => {
     setIpList([...ipList, ""]);
@@ -66,10 +57,24 @@ export function IPExclusionManager({ siteId, disabled = false }: IPExclusionMana
   const handleSave = async () => {
     // Filter out empty entries and validate
     const filteredIPs = ipList.filter(ip => ip.trim() !== "");
-    const invalidIPs = filteredIPs.filter(ip => !validateIPPattern(ip));
+    const invalidIPs: string[] = [];
+    const validationErrors: string[] = [];
+
+    filteredIPs.forEach(ip => {
+      const validation = validateIPPattern(ip);
+      if (!validation.valid) {
+        invalidIPs.push(ip);
+        if (validation.error) {
+          validationErrors.push(`${ip}: ${validation.error}`);
+        }
+      }
+    });
 
     if (invalidIPs.length > 0) {
-      toast.error(`Invalid IP patterns: ${invalidIPs.join(", ")}`);
+      const errorMessage = validationErrors.length > 0 
+        ? `Invalid IP patterns:\n${validationErrors.join('\n')}`
+        : `Invalid IP patterns: ${invalidIPs.join(", ")}`;
+      toast.error(errorMessage);
       return;
     }
 
