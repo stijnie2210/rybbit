@@ -183,7 +183,8 @@ function isValidIPv6(ip: string): boolean {
     const beforeParts = beforeDoubleColon ? beforeDoubleColon.split(":").length : 0;
     const afterParts = afterDoubleColon ? afterDoubleColon.split(":").length : 0;
     
-    return (beforeParts + afterParts) <= 8;
+    // For compressed notation, the sum must be < 8 to ensure at least one zero group is replaced
+    return (beforeParts + afterParts) < 8;
   }
   
   // Full notation
