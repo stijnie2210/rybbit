@@ -7,6 +7,7 @@ interface SiteConfigData {
   saltUserIds: boolean;
   domain: string;
   blockBots: boolean;
+  excludedIPs: string[];
   apiKey?: string | null;
 }
 
@@ -23,6 +24,7 @@ class SiteConfig {
           saltUserIds: sites.saltUserIds,
           domain: sites.domain,
           blockBots: sites.blockBots,
+          excludedIPs: sites.excludedIPs,
           apiKey: sites.apiKey,
         })
         .from(sites);
@@ -37,6 +39,7 @@ class SiteConfig {
           saltUserIds: site.saltUserIds || false,
           domain: site.domain || "",
           blockBots: site.blockBots === undefined ? true : site.blockBots,
+          excludedIPs: Array.isArray(site.excludedIPs) ? site.excludedIPs : [],
           apiKey: site.apiKey,
         });
       }
@@ -148,6 +151,26 @@ class SiteConfig {
     const config = this.siteConfigMap.get(siteId);
     if (config) {
       config.apiKey = apiKey;
+      this.siteConfigMap.set(siteId, config);
+    }
+  }
+
+  /**
+   * Get excluded IPs for a site
+   */
+  getExcludedIPs(siteId: string | number): string[] {
+    const numericSiteId = Number(siteId);
+    const config = this.siteConfigMap.get(numericSiteId);
+    return config?.excludedIPs || [];
+  }
+
+  /**
+   * Update the excluded IPs of a site in the cache
+   */
+  updateSiteExcludedIPs(siteId: number, excludedIPs: string[]): void {
+    const config = this.siteConfigMap.get(siteId);
+    if (config) {
+      config.excludedIPs = excludedIPs;
       this.siteConfigMap.set(siteId, config);
     }
   }

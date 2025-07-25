@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { isbot } from "isbot";
 import { z, ZodError } from "zod";
+import { isIPExcluded } from "../../lib/ipUtils.js";
 import { siteConfig } from "../../lib/siteConfig.js";
 import { sessionsService } from "../sessions/sessionsService.js";
 import { checkApiKeyRateLimit, validateApiKey, validateOrigin } from "../shared/requestValidation.js";
@@ -225,6 +226,19 @@ export async function trackEvent(request: FastifyRequest, reply: FastifyReply) {
     if (usageService.isSiteOverLimit(Number(validatedPayload.site_id))) {
       console.log(`[Tracking] Skipping event for site ${validatedPayload.site_id} - over monthly limit`);
       return reply.status(200).send("Site over monthly limit, event not tracked");
+    }
+
+    // Check if the IP should be excluded from tracking
+    // Use custom IP if provided in payload, otherwise get from request
+    const requestIP = validatedPayload.ip_address || request.ip || "";
+    const excludedIPs = siteConfig.getExcludedIPs(validatedPayload.site_id);
+    
+    if (isIPExcluded(requestIP, excludedIPs)) {
+      console.log(`[Tracking] IP ${requestIP} excluded from tracking for site ${validatedPayload.site_id}`);
+      return reply.status(200).send({
+        success: true,
+        message: "Event not tracked - IP excluded",
+      });
     }
 
     // Create base payload for the event using validated data
