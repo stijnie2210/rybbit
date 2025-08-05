@@ -93,6 +93,51 @@ export const trackingPayloadSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("outbound"),
+      site_id: z.string().min(1),
+      hostname: z.string().max(253).optional(),
+      pathname: z.string().max(2048).optional(),
+      querystring: z.string().max(2048).optional(),
+      screenWidth: z.number().int().positive().optional(),
+      screenHeight: z.number().int().positive().optional(),
+      language: z.string().max(35).optional(),
+      page_title: z.string().max(512).optional(),
+      referrer: z.string().max(2048).optional(),
+      event_name: z.string().max(256).optional(), // Empty for outbound events
+      properties: z
+        .string()
+        .max(2048)
+        .refine(
+          (val) => {
+            try {
+              const parsed = JSON.parse(val);
+              // Validate outbound-specific properties
+              if (typeof parsed.url !== "string" || parsed.url.length === 0) return false;
+              if (parsed.text && typeof parsed.text !== "string") return false;
+              if (parsed.target && typeof parsed.target !== "string") return false;
+              
+              // Validate URL format
+              try {
+                new URL(parsed.url);
+              } catch {
+                return false;
+              }
+              
+              return true;
+            } catch (e) {
+              return false;
+            }
+          },
+          { message: "Properties must be valid JSON with outbound link fields (url required, text and target optional)" },
+        ),
+      user_id: z.string().max(255).optional(),
+      api_key: z.string().max(35).optional(), // rb_ prefix + 32 hex chars
+      ip_address: z.string().ip().optional(), // Custom IP for geolocation
+      user_agent: z.string().max(512).optional(), // Custom user agent
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("error"),
       site_id: z.string().min(1),
       hostname: z.string().max(253).optional(),
