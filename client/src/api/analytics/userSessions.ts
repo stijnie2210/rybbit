@@ -37,6 +37,7 @@ export type GetSessionsResponse = {
   pageviews: number;
   events: number;
   errors: number;
+  outbound: number;
 }[];
 
 export function useGetSessionsInfinite(userId?: string) {

@@ -34,7 +34,7 @@ export default function EventsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Outbound Links</CardTitle>
+              <CardTitle>Outbound Clicks</CardTitle>
             </CardHeader>
             <CardContent>
               <OutboundLinksList 

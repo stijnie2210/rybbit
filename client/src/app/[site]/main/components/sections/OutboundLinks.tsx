@@ -29,7 +29,7 @@ export function OutboundLinks() {
           onValueChange={(value) => setTab(value as Tab)}
         >
           <TabsList>
-            <TabsTrigger value="outbound">Outbound Links</TabsTrigger>
+            <TabsTrigger value="outbound">Outbound Clicks</TabsTrigger>
           </TabsList>
           <TabsContent value="outbound">
             {isLoadingOutboundLinks && (

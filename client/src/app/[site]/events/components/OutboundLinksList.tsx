@@ -124,7 +124,7 @@ export function OutboundLinksList({
       <div className="flex flex-col gap-2">
         <div className="text-neutral-100 w-full text-center mt-6 flex flex-row gap-2 items-center justify-center">
           <ExternalLink className="w-5 h-5" />
-          No outbound links tracked
+          No outbound clicks tracked
         </div>
         <div className="text-neutral-400 w-full text-center mt-2 text-sm">
           External link clicks will appear here

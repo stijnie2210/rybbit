@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowRight, ChevronDown, ChevronRight, FileText, MousePointerClick, TriangleAlert } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight, ExternalLink, FileText, MousePointerClick, TriangleAlert } from "lucide-react";
 import { DateTime } from "luxon";
 import { memo, useState } from "react";
 import { GetSessionsResponse } from "../../api/analytics/userSessions";
@@ -100,6 +100,15 @@ export function SessionCard({ session, onClick, userId }: SessionCardProps) {
               </TooltipTrigger>
               <TooltipContent>Errors</TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="flex items-center gap-1 bg-neutral-800 text-gray-300">
+                  <ExternalLink className="w-4 h-4 text-purple-500" />
+                  <span>{formatter(session.outbound)}</span>
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>Outbound Clicks</TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Pages section with tooltips for long paths */}
@@ -195,6 +204,7 @@ export const SessionCardSkeleton = memo(() => {
             <Skeleton className="h-4 w-4 rounded-sm flex-shrink-0" />
             <Skeleton className="h-4 w-4 rounded-sm flex-shrink-0" />
             <Skeleton className="h-4 w-4 rounded-sm" />
+            <Skeleton className="h-[21px] w-12 rounded-sm" />
             <Skeleton className="h-[21px] w-12 rounded-sm" />
             <Skeleton className="h-[21px] w-12 rounded-sm" />
             <Skeleton className="h-[21px] w-12 rounded-sm" />

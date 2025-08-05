@@ -94,7 +94,8 @@ export async function getSessions(
           argMaxIf(pathname, timestamp, type = 'pageview') AS exit_page,
           countIf(type = 'pageview') AS pageviews,
           countIf(type = 'custom_event') AS events,
-          countIf(type = 'error') AS errors
+          countIf(type = 'error') AS errors,
+          countIf(type = 'outbound') AS outbound
       FROM events
       WHERE
           site_id = {siteId:Int32}

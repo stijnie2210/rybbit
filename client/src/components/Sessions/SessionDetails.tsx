@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowRight,
   Clock,
+  ExternalLink,
   FileText,
   Loader2,
   Monitor,
@@ -44,6 +45,7 @@ function PageviewItem({
   const isError = item.type === "error";
   const isEvent = item.type === "custom_event";
   const isPageview = item.type === "pageview";
+  const isOutbound = item.type === "outbound";
   const timestamp = DateTime.fromSQL(item.timestamp, { zone: "utc" }).toLocal();
   const formattedTime = timestamp.toFormat(hour12 ? "h:mm:ss a" : "HH:mm:ss");
 
@@ -75,6 +77,8 @@ function PageviewItem({
               ? "bg-amber-900/30 border-amber-500/50"
               : isError
               ? "bg-red-900/30 border-red-500/50"
+              : isOutbound
+              ? "bg-purple-900/30 border-purple-500/50"
               : "bg-blue-900/30 border-blue-500/50"
           )}
         >
@@ -89,6 +93,8 @@ function PageviewItem({
               <MousePointerClick className="w-4 h-4 text-amber-500" />
             ) : isError ? (
               <TriangleAlert className="w-4 h-4 text-red-500" />
+            ) : isOutbound ? (
+              <ExternalLink className="w-4 h-4 text-purple-500" />
             ) : (
               <FileText className="w-4 h-4 text-blue-500" />
             )}
@@ -112,8 +118,24 @@ function PageviewItem({
                   {item.querystring ? `${item.querystring}` : ""}
                 </div>
               </Link>
+            ) : isOutbound && item.props?.url ? (
+              <Link
+                href={String(item.props.url)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <div
+                  className="text-sm truncate hover:underline text-purple-400"
+                  title={String(item.props.url)}
+                  style={{
+                    maxWidth: "calc(min(100vw, 1150px) - 250px)",
+                  }}
+                >
+                  {String(item.props.url)}
+                </div>
+              </Link>
             ) : (
-              <div className="text-sm truncate">{item.event_name}</div>
+              <div className="text-sm truncate">{item.event_name || 'Outbound Click'}</div>
             )}
           </div>
 
@@ -141,6 +163,32 @@ function PageviewItem({
                       <span className="text-neutral-300 font-light mr-1">{key}:</span> {String(value)}
                     </Badge>
                   ))}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        )}
+        {isOutbound && (
+          <div className="flex items-center pl-7 mt-1">
+            <div className="text-xs text-neutral-400">
+              {item.props && Object.keys(item.props).length > 0 ? (
+                <span className="flex flex-wrap gap-2 mt-1">
+                  {item.props.text ? (
+                    <Badge
+                      variant="outline"
+                      className="px-1.5 py-0 h-5 text-xs bg-neutral-800 text-neutral-100 font-medium"
+                    >
+                      <span className="text-neutral-300 font-light mr-1">text:</span> {String(item.props.text)}
+                    </Badge>
+                  ) : null}
+                  {item.props.target ? (
+                    <Badge
+                      variant="outline"
+                      className="px-1.5 py-0 h-5 text-xs bg-neutral-800 text-neutral-100 font-medium"
+                    >
+                      <span className="text-neutral-300 font-light mr-1">target:</span> {String(item.props.target)}
+                    </Badge>
+                  ) : null}
                 </span>
               ) : null}
             </div>
@@ -260,6 +308,10 @@ export function SessionDetails({ session, userId }: SessionDetailsProps) {
 
   const totalErrors = useMemo(() => {
     return allEvents.filter((p: SessionEvent) => p.type === "error").length;
+  }, [allEvents]);
+
+  const totalOutbound = useMemo(() => {
+    return allEvents.filter((p: SessionEvent) => p.type === "outbound").length;
   }, [allEvents]);
 
   const { getRegionName } = useGetRegionName();
