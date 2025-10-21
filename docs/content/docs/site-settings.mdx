@@ -32,6 +32,15 @@ When enabled, Rybbit will forget about unique users every day. If a user visits 
 - Unique user count over a period longer than 24 hours will be inflated
 - The user retention page will effectively be useless
 
+## Traffic Filtering
+
+You can filter unwanted traffic from your analytics using IP and country exclusions. See the [Filter Traffic](/docs/filter-traffic) guide for detailed information on:
+
+- **IP Exclusions**: Block specific IP addresses or ranges (supports CIDR notation and IPv4 ranges)
+- **Country Exclusions**: Block all traffic from specific countries using ISO country codes
+
+Both filtering methods work at the server level, ensuring blocked traffic never reaches your analytics database.
+
 ## Changing Domains
 
 You can update the domain of your site directly from the settings page.

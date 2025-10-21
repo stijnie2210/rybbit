@@ -843,6 +843,85 @@ When you exceed the rate limit, you'll receive a `429` status code:
 }
 ```
 
+## Configuration Endpoints
+
+### Get Excluded IPs
+
+Retrieve the list of excluded IP addresses for a site.
+
+```bash
+GET /api/site/:siteId/excluded-ips
+Authorization: Bearer <your-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "excludedIPs": ["192.168.1.0/24", "10.0.0.1"]
+}
+```
+
+### Get Excluded Countries
+
+Retrieve the list of excluded countries for a site.
+
+```bash
+GET /api/site/:siteId/excluded-countries
+Authorization: Bearer <your-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "excludedCountries": ["US", "GB", "CN"]
+}
+```
+
+### Update Site Configuration
+
+Update site configuration including IP and country exclusions.
+
+```bash
+POST /api/site/:siteId/config
+Authorization: Bearer <your-token>
+Content-Type: application/json
+
+{
+  "excludedIPs": ["192.168.1.0/24", "10.0.0.1"],
+  "excludedCountries": ["US", "GB"],
+  "blockBots": true,
+  "sessionReplay": false
+}
+```
+
+**Request Parameters:**
+- `excludedIPs` (string[]): List of IP addresses/ranges to exclude (max 100)
+- `excludedCountries` (string[]): List of 2-letter ISO country codes to exclude (max 250)
+- `blockBots` (boolean): Enable/disable bot traffic blocking
+- `sessionReplay` (boolean): Enable/disable session replay
+- Other site configuration options (see [Site Settings](/docs/site-settings))
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Site configuration updated successfully",
+  "config": {
+    "excludedIPs": ["192.168.1.0/24"],
+    "excludedCountries": ["US", "GB"],
+    "blockBots": true
+  }
+}
+```
+
+**Country Code Validation:**
+- Must be uppercase 2-letter ISO 3166-1 alpha-2 codes (e.g., `US`, `GB`, `CN`)
+- Invalid codes will return a 400 error with validation details
+
+See the [Filter Traffic](/docs/filter-traffic) documentation for more details on traffic filtering.
+
 ## Best Practices
 
 <Callout type="info">
