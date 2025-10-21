@@ -10,6 +10,7 @@ interface SiteConfigData {
   saltUserIds: boolean;
   blockBots: boolean;
   excludedIPs: string[];
+  excludedCountries: string[];
   sessionReplay: boolean;
   webVitals: boolean;
   trackErrors: boolean;
@@ -77,6 +78,7 @@ describe("validateApiKey", () => {
       saltUserIds: false,
       blockBots: true,
       excludedIPs: [],
+      excludedCountries: [],
       sessionReplay: false,
       webVitals: false,
       trackErrors: false,
@@ -110,6 +112,7 @@ describe("validateApiKey", () => {
       saltUserIds: false,
       blockBots: true,
       excludedIPs: [],
+      excludedCountries: [],
       sessionReplay: false,
       webVitals: false,
       trackErrors: false,
@@ -137,6 +140,7 @@ describe("validateApiKey", () => {
       saltUserIds: false,
       blockBots: true,
       excludedIPs: [],
+      excludedCountries: [],
       sessionReplay: false,
       webVitals: false,
       trackErrors: false,
@@ -180,6 +184,7 @@ describe("validateApiKey", () => {
       saltUserIds: false,
       blockBots: true,
       excludedIPs: [],
+      excludedCountries: [],
       sessionReplay: false,
       webVitals: false,
       trackErrors: false,

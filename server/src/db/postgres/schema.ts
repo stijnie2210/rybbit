@@ -70,6 +70,7 @@ export const sites = pgTable(
     saltUserIds: boolean().default(false),
     blockBots: boolean().default(true).notNull(),
     excludedIPs: jsonb("excluded_ips").default([]), // Array of IP addresses/ranges to exclude
+    excludedCountries: jsonb("excluded_countries").default([]), // Array of ISO country codes to exclude (e.g., ["US", "GB"])
     sessionReplay: boolean().default(false),
     webVitals: boolean().default(false),
     trackErrors: boolean().default(false),

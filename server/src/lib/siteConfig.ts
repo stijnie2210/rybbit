@@ -13,6 +13,7 @@ export interface SiteConfigData {
   domain: string;
   blockBots: boolean;
   excludedIPs: string[];
+  excludedCountries: string[];
   apiKey?: string | null;
   sessionReplay: boolean;
   webVitals: boolean;
@@ -58,6 +59,7 @@ class SiteConfig {
           domain: sites.domain,
           blockBots: sites.blockBots,
           excludedIPs: sites.excludedIPs,
+          excludedCountries: sites.excludedCountries,
           apiKey: sites.apiKey,
           sessionReplay: sites.sessionReplay,
           webVitals: sites.webVitals,
@@ -84,6 +86,7 @@ class SiteConfig {
         domain: site.domain || "",
         blockBots: site.blockBots === undefined ? true : site.blockBots,
         excludedIPs: Array.isArray(site.excludedIPs) ? site.excludedIPs : [],
+        excludedCountries: Array.isArray(site.excludedCountries) ? site.excludedCountries : [],
         apiKey: site.apiKey,
         sessionReplay: site.sessionReplay || false,
         webVitals: site.webVitals || false,
@@ -185,6 +188,25 @@ class SiteConfig {
     }
 
     return false;
+  }
+
+  /**
+   * Check if a country code is in the excluded countries list
+   * @param countryIso - ISO country code (e.g., "US", "GB", "CN")
+   * @param siteIdOrId - Site identifier
+   * @returns true if country should be excluded
+   */
+  async isCountryExcluded(countryIso: string | undefined, siteIdOrId?: string | number): Promise<boolean> {
+    if (!siteIdOrId || !countryIso) return false;
+    const config = await this.getSiteByAnyId(siteIdOrId);
+    const excludedCountries = config?.excludedCountries || [];
+    if (!excludedCountries || excludedCountries.length === 0) {
+      return false;
+    }
+
+    // Convert to uppercase for case-insensitive comparison
+    const normalizedCountry = countryIso.toUpperCase();
+    return excludedCountries.some(country => country.toUpperCase() === normalizedCountry);
   }
 
   /**
