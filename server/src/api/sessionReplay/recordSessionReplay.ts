@@ -97,9 +97,10 @@ export async function recordSessionReplay(
     // Check if the country should be excluded from tracking
     if (excludedCountries && excludedCountries.length > 0) {
       const { getLocation } = await import("../../db/geolocation/geolocation.js");
-      const locationData = await getLocation(requestIP);
+      const locationResults = await getLocation([requestIP]);
+      const locationData = locationResults[requestIP];
 
-      if (locationData.countryIso) {
+      if (locationData?.countryIso) {
         const isCountryExcluded = await siteConfig.isCountryExcluded(locationData.countryIso, request.params.site);
         if (isCountryExcluded) {
           logger.info(`[SessionReplay] Country ${locationData.countryIso} excluded from tracking for site ${siteId}`);

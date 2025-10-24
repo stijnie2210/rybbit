@@ -291,9 +291,10 @@ export async function trackEvent(request: FastifyRequest, reply: FastifyReply) {
     // Check if the country should be excluded from tracking
     if (siteConfiguration.excludedCountries && siteConfiguration.excludedCountries.length > 0) {
       const { getLocation } = await import("../../db/geolocation/geolocation.js");
-      const locationData = await getLocation(requestIP);
+      const locationResults = await getLocation([requestIP]);
+      const locationData = locationResults[requestIP];
 
-      if (locationData.countryIso) {
+      if (locationData?.countryIso) {
         const isCountryExcluded = await siteConfig.isCountryExcluded(locationData.countryIso, validatedPayload.site_id);
         if (isCountryExcluded) {
           logger.info(
