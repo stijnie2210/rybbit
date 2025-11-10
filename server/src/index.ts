@@ -15,7 +15,9 @@ import { getOutboundLinks } from "./api/analytics/events/getOutboundLinks.js";
 import { createFunnel } from "./api/analytics/funnels/createFunnel.js";
 import { deleteFunnel } from "./api/analytics/funnels/deleteFunnel.js";
 import { getFunnel } from "./api/analytics/funnels/getFunnel.js";
+import { getFunnelApi } from "./api/analytics/funnels/getFunnelApi.js";
 import { getFunnels } from "./api/analytics/funnels/getFunnels.js";
+import { getFunnelsApi } from "./api/analytics/funnels/getFunnelsApi.js";
 import { getErrorBucketed } from "./api/analytics/getErrorBucketed.js";
 import { getErrorEvents } from "./api/analytics/getErrorEvents.js";
 import { getErrorNames } from "./api/analytics/getErrorNames.js";
@@ -159,7 +161,7 @@ server.register(cors, {
     callback(null, true);
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-captcha-response", "x-private-key"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-captcha-response", "x-private-key", "x-api-key"],
   credentials: true,
 });
 
@@ -213,6 +215,7 @@ const PUBLIC_ROUTES: string[] = [
   "/api/session-replay/record",
   "/api/admin/telemetry",
   "/api/site/:siteId/tracking-config",
+  "/api/v1/", // API key authenticated endpoints
 ];
 
 // Define analytics routes that can be public
@@ -328,6 +331,11 @@ server.get("/api/journeys/:site", getJourneys);
 server.post("/api/funnel/:site", getFunnel);
 server.post("/api/funnel/create/:site", createFunnel);
 server.delete("/api/funnel/:funnelId", deleteFunnel);
+
+// API Key authenticated funnel endpoints
+server.get("/api/v1/funnels/:site", getFunnelsApi);
+server.post("/api/v1/funnel/:site", getFunnelApi);
+
 server.get("/api/goals/:site", getGoals);
 server.post("/api/goal/create", createGoal);
 server.delete("/api/goal/:goalId", deleteGoal);
