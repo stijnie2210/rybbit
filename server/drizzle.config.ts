@@ -17,4 +17,5 @@ export default defineConfig({
   },
   verbose: true,
   schemaFilter: ["public"],
+  tablesFilter: ['!pg_*'],
 });
