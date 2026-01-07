@@ -277,12 +277,17 @@ export function FunnelForm({
                                     className="border-neutral-300 dark:border-neutral-700"
                                     value={filter.key}
                                     onChange={e => {
+                                      // Create immutable copies for nested state
                                       const newStepPropertyFilters = [...stepPropertyFilters];
-                                      newStepPropertyFilters[index][filterIndex].key = e.target.value;
+                                      const stepFilters = [...newStepPropertyFilters[index]];
+                                      const updatedFilter = { ...stepFilters[filterIndex], key: e.target.value };
+                                      stepFilters[filterIndex] = updatedFilter;
+                                      newStepPropertyFilters[index] = stepFilters;
                                       setStepPropertyFilters(newStepPropertyFilters);
-                                      // Update the step with propertyFilters
+
+                                      // Update the step with propertyFilters immutably
                                       const newSteps = [...steps];
-                                      newSteps[index].propertyFilters = newStepPropertyFilters[index];
+                                      newSteps[index] = { ...newSteps[index], propertyFilters: stepFilters };
                                       setSteps(newSteps);
                                     }}
                                   />
@@ -291,12 +296,17 @@ export function FunnelForm({
                                     className="border-neutral-300 dark:border-neutral-700"
                                     value={filter.value}
                                     onChange={e => {
+                                      // Create immutable copies for nested state
                                       const newStepPropertyFilters = [...stepPropertyFilters];
-                                      newStepPropertyFilters[index][filterIndex].value = e.target.value;
+                                      const stepFilters = [...newStepPropertyFilters[index]];
+                                      const updatedFilter = { ...stepFilters[filterIndex], value: e.target.value };
+                                      stepFilters[filterIndex] = updatedFilter;
+                                      newStepPropertyFilters[index] = stepFilters;
                                       setStepPropertyFilters(newStepPropertyFilters);
-                                      // Update the step with propertyFilters
+
+                                      // Update the step with propertyFilters immutably
                                       const newSteps = [...steps];
-                                      newSteps[index].propertyFilters = newStepPropertyFilters[index];
+                                      newSteps[index] = { ...newSteps[index], propertyFilters: stepFilters };
                                       setSteps(newSteps);
                                     }}
                                   />
@@ -307,14 +317,17 @@ export function FunnelForm({
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => {
+                                      // Create immutable copies for nested state
                                       const newStepPropertyFilters = [...stepPropertyFilters];
-                                      newStepPropertyFilters[index] = newStepPropertyFilters[index].filter(
+                                      const stepFilters = newStepPropertyFilters[index].filter(
                                         (_, i) => i !== filterIndex
                                       );
+                                      newStepPropertyFilters[index] = stepFilters;
                                       setStepPropertyFilters(newStepPropertyFilters);
-                                      // Update the step with propertyFilters
+
+                                      // Update the step with propertyFilters immutably
                                       const newSteps = [...steps];
-                                      newSteps[index].propertyFilters = newStepPropertyFilters[index];
+                                      newSteps[index] = { ...newSteps[index], propertyFilters: stepFilters };
                                       setSteps(newSteps);
                                     }}
                                   >
