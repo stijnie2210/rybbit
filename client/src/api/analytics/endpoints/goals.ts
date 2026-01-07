@@ -10,8 +10,14 @@ export interface Goal {
   config: {
     pathPattern?: string;
     eventName?: string;
+    // Deprecated fields - kept for backwards compatibility
     eventPropertyKey?: string;
     eventPropertyValue?: string | number | boolean;
+    // New field for multiple property filters
+    propertyFilters?: Array<{
+      key: string;
+      value: string | number | boolean;
+    }>;
   };
   createdAt: string;
   total_conversions: number;

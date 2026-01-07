@@ -10,8 +10,14 @@ type FunnelStep = {
   name?: string;
   type: "page" | "event";
   hostname?: string;
+  // Deprecated fields - kept for backwards compatibility
   eventPropertyKey?: string;
   eventPropertyValue?: string | number | boolean;
+  // New field for multiple property filters
+  propertyFilters?: Array<{
+    key: string;
+    value: string | number | boolean;
+  }>;
 };
 
 type Funnel = {
@@ -59,26 +65,49 @@ export async function getFunnel(
         // Don't use SqlString.escape() as it doesn't preserve the regex correctly
         const safeRegex = regex.replace(/'/g, "\\'");
         condition = `type = 'pageview' AND match(pathname, '${safeRegex}')`;
+
+        // Support both new propertyFilters array and legacy single property
+        const filters = step.propertyFilters || (
+          step.eventPropertyKey && step.eventPropertyValue !== undefined
+            ? [{ key: step.eventPropertyKey, value: step.eventPropertyValue }]
+            : []
+        );
+
+        // Add property matching for page steps (URL parameters)
+        for (const filter of filters) {
+          // Access URL parameters from the url_parameters map
+          const propValueAccessor = `url_parameters[${SqlString.escape(filter.key)}]`;
+
+          // URL parameters are stored as strings in the Map
+          condition += ` AND ${propValueAccessor} = ${SqlString.escape(String(filter.value))}`;
+        }
       } else {
         // Start with the base event match condition
         condition = `type = 'custom_event' AND event_name = ${SqlString.escape(step.value)}`;
 
+        // Support both new propertyFilters array and legacy single property
+        const filters = step.propertyFilters || (
+          step.eventPropertyKey && step.eventPropertyValue !== undefined
+            ? [{ key: step.eventPropertyKey, value: step.eventPropertyValue }]
+            : []
+        );
+
         // Add property matching if both key and value are provided
-        if (step.eventPropertyKey && step.eventPropertyValue !== undefined) {
+        for (const filter of filters) {
           // Access the sub-column directly for native JSON type
-          const propValueAccessor = `props.${SqlString.escapeId(step.eventPropertyKey)}`;
+          const propValueAccessor = `props.${SqlString.escapeId(filter.key)}`;
 
           // Comparison needs to handle the dynamic type returned
           // Let ClickHouse handle the comparison based on the provided value type
-          if (typeof step.eventPropertyValue === "string") {
-            condition += ` AND toString(${propValueAccessor}) = ${SqlString.escape(step.eventPropertyValue)}`;
-          } else if (typeof step.eventPropertyValue === "number") {
+          if (typeof filter.value === "string") {
+            condition += ` AND toString(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+          } else if (typeof filter.value === "number") {
             // Use toFloat64 or toInt* depending on expected number type
-            condition += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(step.eventPropertyValue)}`;
-          } else if (typeof step.eventPropertyValue === "boolean") {
+            condition += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+          } else if (typeof filter.value === "boolean") {
             // Booleans might be stored as 0/1 or true/false in JSON
             // Comparing toUInt8 seems robust
-            condition += ` AND toUInt8OrNull(${propValueAccessor}) = ${step.eventPropertyValue ? 1 : 0}`;
+            condition += ` AND toUInt8OrNull(${propValueAccessor}) = ${filter.value ? 1 : 0}`;
           }
         }
       }

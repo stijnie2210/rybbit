@@ -225,8 +225,13 @@ export const goals = pgTable(
       pathPattern?: string; // e.g., "/pricing", "/product/*/view", "/docs/**"
       // For 'event' type
       eventName?: string; // e.g., "signup_completed", "file_downloaded"
-      eventPropertyKey?: string; // Optional property key to match
-      eventPropertyValue?: string | number | boolean; // Optional property value to match (exact match)
+      // Property filters (for both path and event types)
+      eventPropertyKey?: string; // Deprecated - use propertyFilters instead
+      eventPropertyValue?: string | number | boolean; // Deprecated - use propertyFilters instead
+      propertyFilters?: Array<{
+        key: string;
+        value: string | number | boolean;
+      }>; // Array of property filters to match (all must match)
     }>(),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   },

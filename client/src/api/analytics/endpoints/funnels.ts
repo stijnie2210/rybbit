@@ -8,8 +8,14 @@ export type FunnelStep = {
   name?: string;
   type: "page" | "event";
   hostname?: string;
+  // Deprecated fields - kept for backwards compatibility
   eventPropertyKey?: string;
   eventPropertyValue?: string | number | boolean;
+  // New field for multiple property filters
+  propertyFilters?: Array<{
+    key: string;
+    value: string | number | boolean;
+  }>;
 };
 
 // Funnel request type

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { InputWithSuggestions, SuggestionOption } from "@/components/ui/input-with-suggestions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Plus, Save, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { FunnelResponse, FunnelStep } from "../../../../api/analytics/endpoints";
 import { useMetric } from "../../../../api/analytics/hooks/useGetMetric";
@@ -47,7 +47,17 @@ export function FunnelForm({
 }: FunnelFormProps) {
   // State to track which event steps have property filtering enabled
   const [useProperties, setUseProperties] = useState<boolean[]>(() =>
-    steps.map(step => !!step.eventPropertyKey && step.eventPropertyValue !== undefined)
+    steps.map(step => !!(step.propertyFilters?.length || (step.eventPropertyKey && step.eventPropertyValue !== undefined)))
+  );
+
+  // State for managing multiple property filters per step (store as strings in UI)
+  const [stepPropertyFilters, setStepPropertyFilters] = useState<Array<Array<{ key: string; value: string }>>>(() =>
+    steps.map(step =>
+      step.propertyFilters?.map(f => ({ key: f.key, value: String(f.value) })) ||
+      (step.eventPropertyKey && step.eventPropertyValue !== undefined
+        ? [{ key: step.eventPropertyKey, value: String(step.eventPropertyValue) }]
+        : [{ key: "", value: "" }])
+    )
   );
 
   // Fetch suggestions for paths, events, and hostnames
@@ -92,6 +102,7 @@ export function FunnelForm({
   const addStep = () => {
     setSteps([...steps, { type: "page", value: "", name: "" }]);
     setUseProperties([...useProperties, false]);
+    setStepPropertyFilters([...stepPropertyFilters, [{ key: "", value: "" }]]);
   };
 
   // Handle removing a step
@@ -104,6 +115,10 @@ export function FunnelForm({
     const newUseProperties = [...useProperties];
     newUseProperties.splice(index, 1);
     setUseProperties(newUseProperties);
+
+    const newStepPropertyFilters = [...stepPropertyFilters];
+    newStepPropertyFilters.splice(index, 1);
+    setStepPropertyFilters(newStepPropertyFilters);
   };
 
   // Handle step input changes
@@ -119,17 +134,8 @@ export function FunnelForm({
     newSteps[index] = {
       ...newSteps[index],
       type,
-      // Clear property fields if switching from event to page
-      ...(type === "page" ? { eventPropertyKey: undefined, eventPropertyValue: undefined } : {}),
     };
     setSteps(newSteps);
-
-    // Disable property filtering if switching to page type
-    if (type === "page" && useProperties[index]) {
-      const newUseProperties = [...useProperties];
-      newUseProperties[index] = false;
-      setUseProperties(newUseProperties);
-    }
   };
 
   // Handle property filtering toggle
@@ -145,6 +151,7 @@ export function FunnelForm({
         ...newSteps[index],
         eventPropertyKey: undefined,
         eventPropertyValue: undefined,
+        propertyFilters: undefined,
       };
       setSteps(newSteps);
     }
@@ -247,36 +254,92 @@ export function FunnelForm({
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                      {/* Property filtering for event steps */}
-                      {step.type === "event" && (
-                        <div className="mt-2 space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              checked={useProperties[index]}
-                              onCheckedChange={checked => togglePropertyFiltering(index, checked)}
-                              id={`use-properties-${index}`}
-                            />
-                            <Label htmlFor={`use-properties-${index}`}>Filter by event property</Label>
-                          </div>
-
-                          {useProperties[index] && (
-                            <div className="grid grid-cols-2 gap-2 mt-2">
-                              <Input
-                                placeholder="Property key"
-                                className="border-neutral-300 dark:border-neutral-700"
-                                value={step.eventPropertyKey || ""}
-                                onChange={e => updateStep(index, "eventPropertyKey", e.target.value)}
-                              />
-                              <Input
-                                placeholder="Property value"
-                                className="border-neutral-300 dark:border-neutral-700"
-                                value={step.eventPropertyValue !== undefined ? String(step.eventPropertyValue) : ""}
-                                onChange={e => updateStep(index, "eventPropertyValue", e.target.value)}
-                              />
-                            </div>
-                          )}
+                      {/* Property filtering for both page and event steps */}
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            checked={useProperties[index]}
+                            onCheckedChange={checked => togglePropertyFiltering(index, checked)}
+                            id={`use-properties-${index}`}
+                          />
+                          <Label htmlFor={`use-properties-${index}`}>
+                            {step.type === "page" ? "Filter by URL parameter" : "Filter by event property"}
+                          </Label>
                         </div>
-                      )}
+
+                        {useProperties[index] && (
+                          <div className="space-y-3">
+                            {stepPropertyFilters[index]?.map((filter, filterIndex) => (
+                              <div key={filterIndex} className="flex gap-2 items-start">
+                                <div className="flex-1 grid grid-cols-2 gap-2">
+                                  <Input
+                                    placeholder={step.type === "page" ? "e.g., utm_source" : "e.g., plan_type"}
+                                    className="border-neutral-300 dark:border-neutral-700"
+                                    value={filter.key}
+                                    onChange={e => {
+                                      const newStepPropertyFilters = [...stepPropertyFilters];
+                                      newStepPropertyFilters[index][filterIndex].key = e.target.value;
+                                      setStepPropertyFilters(newStepPropertyFilters);
+                                      // Update the step with propertyFilters
+                                      const newSteps = [...steps];
+                                      newSteps[index].propertyFilters = newStepPropertyFilters[index];
+                                      setSteps(newSteps);
+                                    }}
+                                  />
+                                  <Input
+                                    placeholder={step.type === "page" ? "e.g., adwords" : "e.g., premium"}
+                                    className="border-neutral-300 dark:border-neutral-700"
+                                    value={filter.value}
+                                    onChange={e => {
+                                      const newStepPropertyFilters = [...stepPropertyFilters];
+                                      newStepPropertyFilters[index][filterIndex].value = e.target.value;
+                                      setStepPropertyFilters(newStepPropertyFilters);
+                                      // Update the step with propertyFilters
+                                      const newSteps = [...steps];
+                                      newSteps[index].propertyFilters = newStepPropertyFilters[index];
+                                      setSteps(newSteps);
+                                    }}
+                                  />
+                                </div>
+                                {stepPropertyFilters[index].length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      const newStepPropertyFilters = [...stepPropertyFilters];
+                                      newStepPropertyFilters[index] = newStepPropertyFilters[index].filter(
+                                        (_, i) => i !== filterIndex
+                                      );
+                                      setStepPropertyFilters(newStepPropertyFilters);
+                                      // Update the step with propertyFilters
+                                      const newSteps = [...steps];
+                                      newSteps[index].propertyFilters = newStepPropertyFilters[index];
+                                      setSteps(newSteps);
+                                    }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newStepPropertyFilters = [...stepPropertyFilters];
+                                newStepPropertyFilters[index] = [...newStepPropertyFilters[index], { key: "", value: "" }];
+                                setStepPropertyFilters(newStepPropertyFilters);
+                              }}
+                              className="w-full"
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add Another {step.type === "page" ? "Parameter" : "Property"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
