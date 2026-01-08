@@ -107,14 +107,12 @@ export async function getFunnelStepSessions(req: FastifyRequest<GetFunnelStepSes
 
         // Add property matching for event steps
         for (const filter of filters) {
-          const propValueAccessor = `props.${SqlString.escapeId(filter.key)}`;
-
           if (typeof filter.value === "string") {
-            condition += ` AND toString(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+            condition += ` AND JSONExtractString(toString(props), ${SqlString.escape(filter.key)}) = ${SqlString.escape(filter.value)}`;
           } else if (typeof filter.value === "number") {
-            condition += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+            condition += ` AND toFloat64(JSONExtractString(toString(props), ${SqlString.escape(filter.key)})) = ${SqlString.escape(filter.value)}`;
           } else if (typeof filter.value === "boolean") {
-            condition += ` AND toUInt8OrNull(${propValueAccessor}) = ${filter.value ? 1 : 0}`;
+            condition += ` AND JSONExtractString(toString(props), ${SqlString.escape(filter.key)}) = ${SqlString.escape(filter.value ? 'true' : 'false')}`;
           }
         }
       }
@@ -137,7 +135,8 @@ export async function getFunnelStepSessions(req: FastifyRequest<GetFunnelStepSes
         event_name,
         type,
         props,
-        hostname
+        hostname,
+        url_parameters
       FROM events
       WHERE
         site_id = {siteId:Int32}

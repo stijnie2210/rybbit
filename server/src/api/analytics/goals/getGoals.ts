@@ -194,20 +194,12 @@ export async function getGoals(
 
         // Add property matching if needed
         for (const filter of filters) {
-          // Access the sub-column directly for native JSON type
-          const propValueAccessor = `props.${SqlString.escapeId(filter.key)}`;
-
-          // Comparison needs to handle the Dynamic type returned
-          // Let ClickHouse handle the comparison based on the provided value type
           if (typeof filter.value === "string") {
-            eventClause += ` AND toString(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+            eventClause += ` AND JSONExtractString(toString(props), ${SqlString.escape(filter.key)}) = ${SqlString.escape(filter.value)}`;
           } else if (typeof filter.value === "number") {
-            // Use toFloat64 or toInt* depending on expected number type
-            eventClause += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+            eventClause += ` AND toFloat64(JSONExtractString(toString(props), ${SqlString.escape(filter.key)})) = ${SqlString.escape(filter.value)}`;
           } else if (typeof filter.value === "boolean") {
-            // Booleans might be stored as 0/1 or true/false in JSON
-            // Comparing toUInt8 seems robust
-            eventClause += ` AND toUInt8OrNull(${propValueAccessor}) = ${filter.value ? 1 : 0}`;
+            eventClause += ` AND JSONExtractString(toString(props), ${SqlString.escape(filter.key)}) = ${SqlString.escape(filter.value ? 'true' : 'false')}`;
           }
         }
 

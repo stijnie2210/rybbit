@@ -85,14 +85,12 @@ export async function getGoalSessions(req: FastifyRequest<GetGoalSessionsRequest
 
       // Add property matching for event goals
       for (const filter of filters) {
-        const propValueAccessor = `props.${SqlString.escapeId(filter.key)}`;
-
         if (typeof filter.value === "string") {
-          goalCondition += ` AND toString(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+          goalCondition += ` AND JSONExtractString(toString(props), ${SqlString.escape(filter.key)}) = ${SqlString.escape(filter.value)}`;
         } else if (typeof filter.value === "number") {
-          goalCondition += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+          goalCondition += ` AND toFloat64(JSONExtractString(toString(props), ${SqlString.escape(filter.key)})) = ${SqlString.escape(filter.value)}`;
         } else if (typeof filter.value === "boolean") {
-          goalCondition += ` AND toUInt8OrNull(${propValueAccessor}) = ${filter.value ? 1 : 0}`;
+          goalCondition += ` AND JSONExtractString(toString(props), ${SqlString.escape(filter.key)}) = ${SqlString.escape(filter.value ? 'true' : 'false')}`;
         }
       }
     } else {
