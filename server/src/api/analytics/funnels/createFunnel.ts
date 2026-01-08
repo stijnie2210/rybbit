@@ -9,6 +9,13 @@ type FunnelStep = {
   value: string;
   name?: string;
   type: "page" | "event";
+  hostname?: string;
+  eventPropertyKey?: string;
+  eventPropertyValue?: string | number | boolean;
+  propertyFilters?: Array<{
+    key: string;
+    value: string | number | boolean;
+  }>;
 };
 
 type Funnel = {

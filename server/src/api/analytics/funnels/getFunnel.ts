@@ -132,7 +132,8 @@ export async function getFunnel(
         event_name,
         type,
         props,
-        hostname
+        hostname,
+        url_parameters
       FROM events
       WHERE
         site_id = {siteId:Int32}

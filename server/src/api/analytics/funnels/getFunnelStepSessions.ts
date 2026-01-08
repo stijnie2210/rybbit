@@ -13,6 +13,10 @@ type FunnelStep = {
   hostname?: string;
   eventPropertyKey?: string;
   eventPropertyValue?: string | number | boolean;
+  propertyFilters?: Array<{
+    key: string;
+    value: string | number | boolean;
+  }>;
 };
 
 type Funnel = {
@@ -72,24 +76,45 @@ export async function getFunnelStepSessions(req: FastifyRequest<GetFunnelStepSes
 
     // Build conditional statements for each step we need
     const stepsToCheck = mode === "reached" ? stepNumber : stepNumber + 1;
-    const stepConditions = steps.slice(0, stepsToCheck).map((step, idx) => {
+    const stepConditions = steps.slice(0, stepsToCheck).map((step) => {
       let condition = "";
 
       if (step.type === "page") {
         const regex = patternToRegex(step.value);
         condition = `type = 'pageview' AND match(pathname, ${SqlString.escape(regex)})`;
+
+        // Support both new propertyFilters array and legacy single property
+        const filters = step.propertyFilters || (
+          step.eventPropertyKey && step.eventPropertyValue !== undefined
+            ? [{ key: step.eventPropertyKey, value: step.eventPropertyValue }]
+            : []
+        );
+
+        // Add property matching for page steps (URL parameters)
+        for (const filter of filters) {
+          const propValueAccessor = `url_parameters[${SqlString.escape(filter.key)}]`;
+          condition += ` AND ${propValueAccessor} = ${SqlString.escape(String(filter.value))}`;
+        }
       } else {
         condition = `type = 'custom_event' AND event_name = ${SqlString.escape(step.value)}`;
 
-        if (step.eventPropertyKey && step.eventPropertyValue !== undefined) {
-          const propValueAccessor = `props.${SqlString.escapeId(step.eventPropertyKey)}`;
+        // Support both new propertyFilters array and legacy single property
+        const filters = step.propertyFilters || (
+          step.eventPropertyKey && step.eventPropertyValue !== undefined
+            ? [{ key: step.eventPropertyKey, value: step.eventPropertyValue }]
+            : []
+        );
 
-          if (typeof step.eventPropertyValue === "string") {
-            condition += ` AND toString(${propValueAccessor}) = ${SqlString.escape(step.eventPropertyValue)}`;
-          } else if (typeof step.eventPropertyValue === "number") {
-            condition += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(step.eventPropertyValue)}`;
-          } else if (typeof step.eventPropertyValue === "boolean") {
-            condition += ` AND toUInt8OrNull(${propValueAccessor}) = ${step.eventPropertyValue ? 1 : 0}`;
+        // Add property matching for event steps
+        for (const filter of filters) {
+          const propValueAccessor = `props.${SqlString.escapeId(filter.key)}`;
+
+          if (typeof filter.value === "string") {
+            condition += ` AND toString(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+          } else if (typeof filter.value === "number") {
+            condition += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+          } else if (typeof filter.value === "boolean") {
+            condition += ` AND toUInt8OrNull(${propValueAccessor}) = ${filter.value ? 1 : 0}`;
           }
         }
       }
