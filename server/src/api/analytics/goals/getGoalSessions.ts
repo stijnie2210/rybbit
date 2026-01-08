@@ -55,6 +55,19 @@ export async function getGoalSessions(req: FastifyRequest<GetGoalSessionsRequest
 
       const regex = patternToRegex(pathPattern);
       goalCondition = `type = 'pageview' AND match(pathname, ${SqlString.escape(regex)})`;
+
+      // Support both new propertyFilters array and legacy single property
+      const filters = goalData.config.propertyFilters || (
+        goalData.config.eventPropertyKey && goalData.config.eventPropertyValue !== undefined
+          ? [{ key: goalData.config.eventPropertyKey, value: goalData.config.eventPropertyValue }]
+          : []
+      );
+
+      // Add property matching for page goals (URL parameters)
+      for (const filter of filters) {
+        const propValueAccessor = `url_parameters[${SqlString.escape(filter.key)}]`;
+        goalCondition += ` AND ${propValueAccessor} = ${SqlString.escape(String(filter.value))}`;
+      }
     } else if (goalData.goalType === "event") {
       const eventName = goalData.config.eventName;
       if (!eventName) {
@@ -63,19 +76,23 @@ export async function getGoalSessions(req: FastifyRequest<GetGoalSessionsRequest
 
       goalCondition = `type = 'custom_event' AND event_name = ${SqlString.escape(eventName)}`;
 
-      // Add property matching if needed
-      const eventPropertyKey = goalData.config.eventPropertyKey;
-      const eventPropertyValue = goalData.config.eventPropertyValue;
+      // Support both new propertyFilters array and legacy single property
+      const filters = goalData.config.propertyFilters || (
+        goalData.config.eventPropertyKey && goalData.config.eventPropertyValue !== undefined
+          ? [{ key: goalData.config.eventPropertyKey, value: goalData.config.eventPropertyValue }]
+          : []
+      );
 
-      if (eventPropertyKey && eventPropertyValue !== undefined) {
-        const propValueAccessor = `props.${SqlString.escapeId(eventPropertyKey)}`;
+      // Add property matching for event goals
+      for (const filter of filters) {
+        const propValueAccessor = `props.${SqlString.escapeId(filter.key)}`;
 
-        if (typeof eventPropertyValue === "string") {
-          goalCondition += ` AND toString(${propValueAccessor}) = ${SqlString.escape(eventPropertyValue)}`;
-        } else if (typeof eventPropertyValue === "number") {
-          goalCondition += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(eventPropertyValue)}`;
-        } else if (typeof eventPropertyValue === "boolean") {
-          goalCondition += ` AND toUInt8OrNull(${propValueAccessor}) = ${eventPropertyValue ? 1 : 0}`;
+        if (typeof filter.value === "string") {
+          goalCondition += ` AND toString(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+        } else if (typeof filter.value === "number") {
+          goalCondition += ` AND toFloat64OrNull(${propValueAccessor}) = ${SqlString.escape(filter.value)}`;
+        } else if (typeof filter.value === "boolean") {
+          goalCondition += ` AND toUInt8OrNull(${propValueAccessor}) = ${filter.value ? 1 : 0}`;
         }
       }
     } else {

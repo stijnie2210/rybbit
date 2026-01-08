@@ -57,11 +57,16 @@ export interface CreateGoalParams {
     eventName?: string;
     eventPropertyKey?: string;
     eventPropertyValue?: string | number | boolean;
+    propertyFilters?: Array<{
+      key: string;
+      value: string | number | boolean;
+    }>;
   };
 }
 
 export interface UpdateGoalParams extends CreateGoalParams {
   goalId: number;
+  siteId: number;
 }
 
 /**

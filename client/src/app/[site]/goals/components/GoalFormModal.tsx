@@ -110,10 +110,20 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
 
   // Reinitialize useProperties when goal changes or modal opens
   useEffect(() => {
-    if (isOpen) {
-      setUseProperties(!!goal?.config.eventPropertyKey && !!goal?.config.eventPropertyValue);
+    if (isOpen && goal) {
+      // Update useProperties based on either new propertyFilters or legacy properties
+      const hasFilters = !!(goal.config.propertyFilters?.length ||
+        (goal.config.eventPropertyKey && goal.config.eventPropertyValue !== undefined));
+      setUseProperties(hasFilters);
+
+      // Update propertyFilters state
+      const filters = goal.config.propertyFilters?.map(f => ({ key: f.key, value: String(f.value) })) ||
+        (goal.config.eventPropertyKey && goal.config.eventPropertyValue !== undefined
+          ? [{ key: goal.config.eventPropertyKey, value: String(goal.config.eventPropertyValue) }]
+          : [{ key: "", value: "" }]);
+      setPropertyFilters(filters);
     }
-  }, [isOpen, goal?.config.eventPropertyKey, goal?.config.eventPropertyValue]);
+  }, [isOpen, goal]);
 
   const onClose = () => {
     setIsOpen(false);
