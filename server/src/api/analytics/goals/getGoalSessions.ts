@@ -93,6 +93,14 @@ export async function getGoalSessions(req: FastifyRequest<GetGoalSessionsRequest
           goalCondition += ` AND JSONExtractString(toString(props), ${SqlString.escape(filter.key)}) = ${SqlString.escape(filter.value ? 'true' : 'false')}`;
         }
       }
+    } else if (goalData.goalType === "outbound") {
+      const outboundUrlPattern = goalData.config.outboundUrlPattern;
+      if (!outboundUrlPattern) {
+        return res.status(400).send({ error: "Invalid outbound goal configuration" });
+      }
+
+      const regex = patternToRegex(outboundUrlPattern);
+      goalCondition = `type = 'outbound' AND match(toString(props.url), ${SqlString.escape(regex)})`;
     } else {
       return res.status(400).send({ error: "Invalid goal type" });
     }

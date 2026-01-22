@@ -7,8 +7,9 @@ import * as z from "zod";
 import { useCreateGoal } from "../../../../api/analytics/hooks/goals/useCreateGoal";
 import { Goal } from "../../../../api/analytics/endpoints";
 import { useUpdateGoal } from "../../../../api/analytics/hooks/goals/useUpdateGoal";
+import { useGetOutboundLinks } from "../../../../api/analytics/hooks/events/useGetOutboundLinks";
 import { useMetric } from "../../../../api/analytics/hooks/useGetMetric";
-import { EventIcon, PageviewIcon } from "../../../../components/EventIcons";
+import { EventIcon, OutboundIcon, PageviewIcon } from "../../../../components/EventIcons";
 import { Button } from "../../../../components/ui/button";
 import {
   Dialog,
@@ -26,11 +27,10 @@ import { Switch } from "../../../../components/ui/switch";
 import { cn } from "../../../../lib/utils";
 import { Plus, X } from "lucide-react";
 
-// Define form schema
 const formSchema = z
   .object({
     name: z.string().optional(),
-    goalType: z.enum(["path", "event"]),
+    goalType: z.enum(["path", "event", "outbound"]),
     config: z.object({
       pathPattern: z.string().optional(),
       eventName: z.string().optional(),
@@ -44,6 +44,7 @@ const formSchema = z
           })
         )
         .optional(),
+      outboundUrlPattern: z.string().optional(),
     }),
   })
   .refine(
@@ -52,6 +53,8 @@ const formSchema = z
         return !!data.config.pathPattern;
       } else if (data.goalType === "event") {
         return !!data.config.eventName;
+      } else if (data.goalType === "outbound") {
+        return !!data.config.outboundUrlPattern;
       }
       return false;
     },
@@ -65,9 +68,9 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface GoalFormModalProps {
   siteId: number;
-  goal?: Goal; // Optional goal for editing mode
+  goal?: Goal;
   trigger: React.ReactNode;
-  isCloneMode?: boolean; // Optional clone mode flag
+  isCloneMode?: boolean;
 }
 
 export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = false }: GoalFormModalProps) {
@@ -101,7 +104,8 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
     useFilters: false,
   });
 
-  // Transform data into SuggestionOption format
+  const { data: outboundLinksData } = useGetOutboundLinks();
+
   const pathSuggestions: SuggestionOption[] =
     pathsData?.data?.map(item => ({
       value: item.value,
@@ -114,6 +118,11 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
       label: item.value,
     })) || [];
 
+  const outboundSuggestions: SuggestionOption[] =
+    outboundLinksData?.map(item => ({
+      value: item.url,
+      label: item.url,
+    })) || [];
   // Reinitialize useProperties when goal changes or modal opens
   useEffect(() => {
     if (isOpen && goal) {
@@ -142,7 +151,6 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
   const createGoal = useCreateGoal();
   const updateGoal = useUpdateGoal();
 
-  // Initialize form with default values or existing goal
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues:
@@ -156,6 +164,7 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
               eventPropertyKey: goal.config.eventPropertyKey || "",
               eventPropertyValue:
                 goal.config.eventPropertyValue !== undefined ? String(goal.config.eventPropertyValue) : "",
+              outboundUrlPattern: goal.config.outboundUrlPattern || "",
             },
           }
         : {
@@ -166,16 +175,48 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
               eventName: "",
               eventPropertyKey: "",
               eventPropertyValue: "",
+              outboundUrlPattern: "",
             },
           },
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      setUseProperties(!!goal?.config.eventPropertyKey && !!goal?.config.eventPropertyValue);
+
+      if ((isEditMode || isCloneMode) && goal) {
+        form.reset({
+          name: isCloneMode ? `${goal.name || `Goal #${goal.goalId}`} (Copy)` : goal.name || "",
+          goalType: goal.goalType,
+          config: {
+            pathPattern: goal.config.pathPattern || "",
+            eventName: goal.config.eventName || "",
+            eventPropertyKey: goal.config.eventPropertyKey || "",
+            eventPropertyValue:
+              goal.config.eventPropertyValue !== undefined ? String(goal.config.eventPropertyValue) : "",
+            outboundUrlPattern: goal.config.outboundUrlPattern || "",
+          },
+        });
+      } else if (!goal) {
+        form.reset({
+          name: "",
+          goalType: "path",
+          config: {
+            pathPattern: "",
+            eventName: "",
+            eventPropertyKey: "",
+            eventPropertyValue: "",
+            outboundUrlPattern: "",
+          },
+        });
+      }
+    }
+  }, [isOpen, goal, isCloneMode, isEditMode, form]);
+
   const goalType = form.watch("goalType");
 
-  // Handle form submission
   const onSubmit = async (values: FormValues) => {
     try {
-      // Clean up the config based on goal type
       if (values.goalType === "path") {
         values.config.eventName = undefined;
 
@@ -189,9 +230,10 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
         // Clear legacy fields
         values.config.eventPropertyKey = undefined;
         values.config.eventPropertyValue = undefined;
+        values.config.outboundUrlPattern = undefined;
       } else if (values.goalType === "event") {
         values.config.pathPattern = undefined;
-
+        values.config.outboundUrlPattern = undefined;
         // Set propertyFilters if using properties
         if (useProperties) {
           const validFilters = propertyFilters.filter(f => f.key && f.value);
@@ -199,9 +241,16 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
         } else {
           values.config.propertyFilters = undefined;
         }
-        // Clear legacy fields
+        }
+      } else if (values.goalType === "outbound") {
+        values.config.pathPattern = undefined;
+        values.config.eventName = undefined;
         values.config.eventPropertyKey = undefined;
         values.config.eventPropertyValue = undefined;
+      }
+      // Clear legacy fields
+      values.config.eventPropertyKey = undefined;
+      values.config.eventPropertyValue = undefined;
       }
 
       if (isEditMode) {
@@ -221,7 +270,6 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
         });
       }
 
-      // Reset form and state after successful submission
       form.reset();
       setUseProperties(false);
 
@@ -287,10 +335,15 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
                           <PageviewIcon />
                           <span>Page Goal</span>
                         </div>
-                      ) : (
+                      ) : field.value === "event" ? (
                         <div className="flex items-center gap-1 bg-neutral-800/50 py-2 px-3 rounded">
                           <EventIcon />
                           <span>Event Goal</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 bg-neutral-800/50 py-2 px-3 rounded">
+                          <OutboundIcon />
+                          <span>Outbound Goal</span>
                         </div>
                       )}
                     </div>
@@ -320,6 +373,18 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
                         >
                           <EventIcon />
                           <span>Event Goal</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={field.value === "outbound" ? "default" : "outline"}
+                          className={cn(
+                            "flex-1 flex items-center justify-center gap-2",
+                            field.value === "outbound" && "border-green-500"
+                          )}
+                          onClick={() => field.onChange("outbound")}
+                        >
+                          <OutboundIcon />
+                          <span>Outbound Goal</span>
                         </Button>
                       </div>
                     </FormControl>
@@ -492,6 +557,29 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
                   )}
                 </div>
               </>
+            )}
+
+            {goalType === "outbound" && (
+              <FormField
+                control={form.control}
+                name="config.outboundUrlPattern"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Outbound URL Pattern</FormLabel>
+                    <FormControl>
+                      <InputWithSuggestions
+                        suggestions={outboundSuggestions}
+                        placeholder="*stripe.com* or https://docs.example.com/**"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    <div className="text-xs text-neutral-500 mt-1">
+                      Use * to match any characters. Use ** to match across path segments.
+                    </div>
+                  </FormItem>
+                )}
+              />
             )}
 
             <div className="flex justify-end space-x-2">

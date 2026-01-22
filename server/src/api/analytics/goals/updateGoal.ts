@@ -5,10 +5,9 @@ import { getUserHasAccessToSite } from "../../../lib/auth-utils.js";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 
-// Define validation schema for path pattern
 const pathPatternSchema = z.string().min(1, "Path pattern cannot be empty");
+const outboundUrlPatternSchema = z.string().min(1, "Outbound URL pattern cannot be empty");
 
-// Define validation schema for event config
 const eventConfigSchema = z
   .object({
     eventName: z.string().min(1, "Event name cannot be empty"),
@@ -17,7 +16,6 @@ const eventConfigSchema = z
   })
   .refine(
     data => {
-      // If one property matching field is provided, both must be provided
       if (data.eventPropertyKey && data.eventPropertyValue === undefined) {
         return false;
       }
@@ -31,13 +29,10 @@ const eventConfigSchema = z
     }
   );
 
-// Define validation schema for the goal request
-const updateGoalSchema = z
+const updateGoalBodySchema = z
   .object({
-    goalId: z.number().int().positive("Goal ID must be a positive integer"),
-    siteId: z.number().int().positive("Site ID must be a positive integer"),
     name: z.string().optional(),
-    goalType: z.enum(["path", "event"]),
+    goalType: z.enum(["path", "event", "outbound"]),
     config: z.object({
       pathPattern: z.string().optional(),
       eventName: z.string().optional(),
@@ -47,6 +42,7 @@ const updateGoalSchema = z
         key: z.string(),
         value: z.union([z.string(), z.number(), z.boolean()]),
       })).optional(),
+      outboundUrlPattern: z.string().optional(),
     }),
   })
   .refine(
@@ -55,6 +51,8 @@ const updateGoalSchema = z
         return !!data.config.pathPattern;
       } else if (data.goalType === "event") {
         return !!data.config.eventName;
+      } else if (data.goalType === "outbound") {
+        return !!data.config.outboundUrlPattern;
       }
       return false;
     },
@@ -64,20 +62,29 @@ const updateGoalSchema = z
     }
   );
 
-type UpdateGoalRequest = z.infer<typeof updateGoalSchema>;
+type UpdateGoalBody = z.infer<typeof updateGoalBodySchema>;
 
 export async function updateGoal(
   request: FastifyRequest<{
-    Body: UpdateGoalRequest;
+    Params: { siteId: string; goalId: string };
+    Body: UpdateGoalBody;
   }>,
   reply: FastifyReply
 ) {
   try {
-    // Validate the request body
-    const validatedData = updateGoalSchema.parse(request.body);
-    const { goalId, siteId, name, goalType, config } = validatedData;
+    const siteId = parseInt(request.params.siteId, 10);
+    const goalId = parseInt(request.params.goalId, 10);
 
-    // Check if the goal exists
+    if (isNaN(siteId) || siteId <= 0) {
+      return reply.status(400).send({ error: "Invalid site ID" });
+    }
+    if (isNaN(goalId) || goalId <= 0) {
+      return reply.status(400).send({ error: "Invalid goal ID" });
+    }
+
+    const validatedData = updateGoalBodySchema.parse(request.body);
+    const { name, goalType, config } = validatedData;
+
     const existingGoal = await db.query.goals.findFirst({
       where: eq(goals.goalId, goalId),
     });
@@ -86,35 +93,31 @@ export async function updateGoal(
       return reply.status(404).send({ error: "Goal not found" });
     }
 
-    // Check if the goal belongs to the specified site
     if (existingGoal.siteId !== siteId) {
       return reply.status(403).send({ error: "Goal does not belong to the specified site" });
     }
 
-    // Check user access to site
     const userHasAccessToSite = await getUserHasAccessToSite(request, siteId.toString());
     if (!userHasAccessToSite) {
       return reply.status(403).send({ error: "Forbidden" });
     }
 
-    // Additional validation based on goal type
     if (goalType === "path") {
-      // Validate path pattern
       pathPatternSchema.parse(config.pathPattern);
     } else if (goalType === "event") {
-      // Validate event configuration
       eventConfigSchema.parse({
         eventName: config.eventName,
         eventPropertyKey: config.eventPropertyKey,
         eventPropertyValue: config.eventPropertyValue,
       });
+    } else if (goalType === "outbound") {
+      outboundUrlPatternSchema.parse(config.outboundUrlPattern);
     }
 
-    // Update the goal
     const result = await db
       .update(goals)
       .set({
-        name: name || null, // Use null if name is not provided
+        name: name || null,
         goalType,
         config,
       })
@@ -131,8 +134,6 @@ export async function updateGoal(
     });
   } catch (error) {
     console.error("Error updating goal:", error);
-
-    // Handle validation errors
     if (error instanceof z.ZodError) {
       return reply.status(400).send({
         error: "Validation error",

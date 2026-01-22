@@ -246,7 +246,7 @@ export const goals = pgTable(
     goalId: serial("goal_id").primaryKey().notNull(),
     siteId: integer("site_id").notNull(),
     name: text("name"), // Optional, user-defined name for the goal
-    goalType: text("goal_type").notNull(), // 'path' or 'event'
+    goalType: text("goal_type").notNull(), // 'path', 'event', or 'outbound'
     // Configuration specific to the goal type
     config: jsonb("config").notNull().$type<{
       // For 'path' type
@@ -260,6 +260,8 @@ export const goals = pgTable(
         key: string;
         value: string | number | boolean;
       }>; // Array of property filters to match (all must match)
+      // For 'outbound' type
+      outboundUrlPattern?: string; // e.g., "*stripe.com*", "https://docs.example.com/**"
     }>(),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   },

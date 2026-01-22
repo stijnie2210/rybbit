@@ -6,7 +6,7 @@ export interface UpdateGoalRequest {
   goalId: number;
   siteId: number;
   name?: string;
-  goalType: "path" | "event";
+  goalType: "path" | "event" | "outbound";
   config: {
     pathPattern?: string;
     eventName?: string;
@@ -16,6 +16,7 @@ export interface UpdateGoalRequest {
       key: string;
       value: string | number | boolean;
     }>;
+    outboundUrlPattern?: string;
   };
 }
 

@@ -4,12 +4,13 @@ import { createGoal } from "../../endpoints";
 export interface CreateGoalRequest {
   siteId: number;
   name?: string;
-  goalType: "path" | "event";
+  goalType: "path" | "event" | "outbound";
   config: {
     pathPattern?: string;
     eventName?: string;
     eventPropertyKey?: string;
     eventPropertyValue?: string | number | boolean;
+    outboundUrlPattern?: string;
   };
 }
 

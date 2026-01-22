@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useDeleteGoal } from "../../../../api/analytics/hooks/goals/useDeleteGoal";
 import { Goal } from "../../../../api/analytics/endpoints";
 import { useGetGoalSessions } from "../../../../api/analytics/hooks/goals/useGetGoalSessions";
-import { EventIcon, PageviewIcon } from "../../../../components/EventIcons";
+import { EventIcon, OutboundIcon, PageviewIcon } from "../../../../components/EventIcons";
 import { SessionsList } from "../../../../components/Sessions/SessionsList";
 import {
   AlertDialog,
@@ -86,13 +86,22 @@ export default function GoalCard({ goal, siteId }: GoalCardProps) {
                     <p>Page Goal</p>
                   </TooltipContent>
                 </Tooltip>
-              ) : (
+              ) : goal.goalType === "event" ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <EventIcon />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Event Goal</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <OutboundIcon />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Outbound Goal</p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -102,7 +111,11 @@ export default function GoalCard({ goal, siteId }: GoalCardProps) {
             <div className="mt-1">
               <span className="text-xs text-neutral-500 dark:text-neutral-400 mr-2">Pattern:</span>
               <code className="text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded">
-                {goal.goalType === "path" ? goal.config.pathPattern : goal.config.eventName}
+                {goal.goalType === "path"
+                  ? goal.config.pathPattern
+                  : goal.goalType === "event"
+                    ? goal.config.eventName
+                    : goal.config.outboundUrlPattern}
               </code>
 
               {goal.goalType === "event" && goal.config.eventPropertyKey && (

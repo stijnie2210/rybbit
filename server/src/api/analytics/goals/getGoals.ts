@@ -210,6 +210,18 @@ export async function getGoals(
             NULL
           )) AS goal_${goal.goalId}_conversions
         `);
+      } else if (goal.goalType === "outbound") {
+        const outboundUrlPattern = goal.config.outboundUrlPattern;
+        if (!outboundUrlPattern) continue;
+
+        const regex = patternToRegex(outboundUrlPattern);
+        conditionalClauses.push(`
+          COUNT(DISTINCT IF(
+            type = 'outbound' AND match(toString(props.url), ${SqlString.escape(regex)}),
+            session_id,
+            NULL
+          )) AS goal_${goal.goalId}_conversions
+        `);
       }
     }
 

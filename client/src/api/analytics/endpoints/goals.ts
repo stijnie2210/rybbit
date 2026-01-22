@@ -6,7 +6,7 @@ import type { GetSessionsResponse } from "./sessions";
 export interface Goal {
   goalId: number;
   name: string | null;
-  goalType: "path" | "event";
+  goalType: "path" | "event" | "outbound";
   config: {
     pathPattern?: string;
     eventName?: string;
@@ -18,6 +18,7 @@ export interface Goal {
       key: string;
       value: string | number | boolean;
     }>;
+    outboundUrlPattern?: string;
   };
   createdAt: string;
   total_conversions: number;
@@ -51,7 +52,7 @@ export interface GoalSessionsParams extends CommonApiParams, PaginationParams {
 
 export interface CreateGoalParams {
   name?: string;
-  goalType: "path" | "event";
+  goalType: "path" | "event" | "outbound";
   config: {
     pathPattern?: string;
     eventName?: string;
