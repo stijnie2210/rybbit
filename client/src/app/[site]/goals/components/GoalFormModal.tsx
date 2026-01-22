@@ -234,23 +234,20 @@ export default function GoalFormModal({ siteId, goal, trigger, isCloneMode = fal
       } else if (values.goalType === "event") {
         values.config.pathPattern = undefined;
         values.config.outboundUrlPattern = undefined;
-        // Set propertyFilters if using properties
         if (useProperties) {
           const validFilters = propertyFilters.filter(f => f.key && f.value);
           values.config.propertyFilters = validFilters.length > 0 ? validFilters : undefined;
         } else {
           values.config.propertyFilters = undefined;
         }
-        }
+        values.config.eventPropertyKey = undefined;
+        values.config.eventPropertyValue = undefined;
       } else if (values.goalType === "outbound") {
         values.config.pathPattern = undefined;
         values.config.eventName = undefined;
         values.config.eventPropertyKey = undefined;
         values.config.eventPropertyValue = undefined;
-      }
-      // Clear legacy fields
-      values.config.eventPropertyKey = undefined;
-      values.config.eventPropertyValue = undefined;
+        values.config.propertyFilters = undefined;
       }
 
       if (isEditMode) {
