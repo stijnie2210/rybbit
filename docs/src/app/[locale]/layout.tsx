@@ -19,6 +19,7 @@ const { provider } = defineI18nUI(i18n, {
     ko: { displayName: '한국어' },
     pt: { displayName: 'Português' },
     ja: { displayName: '日本語' },
+    nl: { displayName: 'Nederlands' }
   },
 });
 
