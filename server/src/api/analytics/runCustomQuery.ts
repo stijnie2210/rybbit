@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { clickhouseQuery } from "../../db/clickhouse/clickhouse.js";
+import { QUERY_USER_LIMITS } from "../../db/clickhouse/queryLimits.js";
 import { getSitesUserHasAccessTo } from "../../lib/auth-utils.js";
 import {
   MAX_CUSTOM_QUERY_LENGTH,
@@ -8,10 +9,6 @@ import {
   sanitizeClickhouseError,
   validateScopedQuery,
 } from "./utils/customQueryValidation.js";
-
-// Mirrors the rybbit_query ClickHouse profile (docker-compose clickhouse_user_settings).
-const MAX_EXECUTION_TIME_SECONDS = 10;
-const MAX_RESULT_ROWS = 1000;
 
 const requestBodySchema = z.object({
   query: z.string().trim().min(1).max(MAX_CUSTOM_QUERY_LENGTH),
@@ -75,7 +72,7 @@ export async function runCustomQuery(
       format: "JSONEachRow",
       query_params: {
         siteIds,
-        limit: MAX_RESULT_ROWS,
+        limit: QUERY_USER_LIMITS.maxResultRows,
       },
       // Execution limits (readonly, max_execution_time, max_memory_usage,
       // max_result_rows, …) come from the rybbit_query settings profile and are
@@ -88,8 +85,8 @@ export async function runCustomQuery(
       meta: {
         queryId: result.query_id,
         rowCount: data.length,
-        maxExecutionTimeSeconds: MAX_EXECUTION_TIME_SECONDS,
-        maxRows: MAX_RESULT_ROWS,
+        maxExecutionTimeSeconds: QUERY_USER_LIMITS.maxExecutionTimeSeconds,
+        maxRows: QUERY_USER_LIMITS.maxResultRows,
       },
     });
   } catch (error) {
