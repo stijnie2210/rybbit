@@ -23,6 +23,7 @@ import { Pagination } from "../../components/pagination";
 import { useSetPageTitle } from "../../hooks/useSetPageTitle";
 import { authClient } from "../../lib/auth";
 import { canGoBack, canGoForward, goBack, goForward, useStore } from "../../lib/store";
+import { useSyncStateWithUrl } from "../../lib/urlParams";
 import { AddSite } from "../components/AddSite";
 import { SiteCards } from "./SiteCards";
 
@@ -32,6 +33,7 @@ const PAGE_SIZE = 20;
 export default function Home() {
   const t = useExtracted();
   useSetPageTitle("Home");
+  useSyncStateWithUrl();
 
   const { width } = useWindowSize();
   const isDesktop = width !== null && width >= 768;
