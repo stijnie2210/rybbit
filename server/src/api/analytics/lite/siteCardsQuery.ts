@@ -1,11 +1,19 @@
-import { SiteCardQueries, SiteCardQueryParams } from "../siteCardsQuery.js";
+import {
+  buildSiteCardsQueries as buildRawSiteCardsQueries,
+  SiteCardQueries,
+  SiteCardQueryParams,
+} from "../siteCardsQuery.js";
 import { resolveTimeWindow } from "../utils/timeWindow.js";
-import { liteBucket } from "./utils.js";
+import { hasLiteRealtimeRange, liteBucket } from "./utils.js";
 
 export function buildSiteCardsQueries(
   { siteIds, current, comparison, bucket: requestedBucket }: SiteCardQueryParams,
   now = Date.now()
 ): SiteCardQueries {
+  if (hasLiteRealtimeRange(current) || (comparison && hasLiteRealtimeRange(comparison))) {
+    return buildRawSiteCardsQueries({ siteIds, current, comparison, bucket: requestedBucket }, now);
+  }
+
   // Resolve both periods against one clock, including adjacent rolling windows.
   const window = resolveTimeWindow(current, now);
   const previous = comparison === null ? null : resolveTimeWindow(comparison, now);

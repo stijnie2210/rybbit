@@ -123,6 +123,32 @@ describe.each(["site-cards", "site-cards-lite"])("batched %s", endpoint => {
     expect(mocks.query.mock.calls[0][0].query).not.toContain("2026-09-18");
   });
 
+  it.each([5, 30, 60, 120])("reads exact events for a %i-minute rolling window", async minutes => {
+    const response = await request(
+      {
+        siteIds: [1, 2],
+        comparison: { past_minutes_start: minutes * 2, past_minutes_end: minutes },
+      },
+      `/organizations/org-1/${endpoint}?past_minutes_start=${minutes}&past_minutes_end=0&bucket=minute`
+    );
+    expect(response.statusCode).toBe(200);
+    expect(mocks.query).toHaveBeenCalledTimes(2);
+    for (const [spec] of mocks.query.mock.calls) {
+      expect(spec.query).toContain("FROM events");
+      expect(spec.query).not.toContain("_mv_target");
+    }
+    expect(mocks.query.mock.calls[1][0].query).toContain("toStartOfMinute");
+  });
+
+  it("also uses exact events when only the comparison is a short rolling window", async () => {
+    const response = await request({
+      siteIds: [1],
+      comparison: { past_minutes_start: 60, past_minutes_end: 30 },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(mocks.query.mock.calls[0][0].query).toContain("FROM events");
+  });
+
   it.each([
     { siteIds: [], comparison },
     { siteIds: [...allIds, 21], comparison },
