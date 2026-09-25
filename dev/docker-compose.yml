@@ -1,0 +1,84 @@
+# Local development databases for `pnpm dev`, isolated from the live stack.
+# Own project name, volumes and host ports, so the production containers
+# (postgres/clickhouse/redis on 5432/8123/6379) are never touched.
+#
+#   docker compose -f dev/docker-compose.yml up -d
+#   docker compose -f dev/docker-compose.yml down        # keep data
+#   docker compose -f dev/docker-compose.yml down -v     # wipe data
+name: rybbit-dev
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.3.17.4
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    configs:
+      - source: clickhouse_network
+        target: /etc/clickhouse-server/config.d/network.xml
+      - source: clickhouse_user_settings
+        target: /etc/clickhouse-server/users.d/user_settings.xml
+    environment:
+      - CLICKHOUSE_DB=analytics
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=dev
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "127.0.0.1:18123:8123"
+
+  postgres:
+    image: postgres:17.4
+    environment:
+      - POSTGRES_USER=dev
+      - POSTGRES_PASSWORD=dev
+      - POSTGRES_DB=analytics
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d analytics"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "127.0.0.1:15432:5432"
+
+  redis:
+    image: redis:8.6.4-alpine
+    command: ["redis-server", "--requirepass", "dev"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dev", "--no-auth-warning", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:16379:6379"
+
+volumes:
+  clickhouse-data:
+  postgres-data:
+
+configs:
+  clickhouse_network:
+    content: |
+      <clickhouse>
+          <listen_host>0.0.0.0</listen_host>
+      </clickhouse>
+
+  clickhouse_user_settings:
+    content: |
+      <clickhouse>
+        <profiles>
+          <default>
+            <enable_json_type>1</enable_json_type>
+            <async_insert>1</async_insert>
+            <wait_for_async_insert>1</wait_for_async_insert>
+          </default>
+        </profiles>
+      </clickhouse>
