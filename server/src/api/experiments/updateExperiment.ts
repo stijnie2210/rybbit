@@ -2,13 +2,16 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/postgres/postgres.js";
-import { experiments } from "../../db/postgres/schema.js";
+import { experiments, featureFlags } from "../../db/postgres/schema.js";
+import { invalidateFeatureFlagDefinitions } from "../../services/featureFlags/definitions.js";
 import { experimentUpdateSchema, type ExperimentUpdate } from "./schemas.js";
 import {
   getDuplicateExperimentMessage,
+  getExperimentVariantKeys,
   getExperimentWithRelations,
   parseExperimentId,
   parseSiteId,
+  rolloutWinner,
   serializeExperiment,
   timestampsForStatus,
   validateExperimentReferences,
@@ -62,11 +65,49 @@ export async function updateExperiment(
       Object.assign(updateData, timestampsForStatus(body.status, existing));
     }
 
-    const [updated] = await db
-      .update(experiments)
-      .set(updateData)
-      .where(and(eq(experiments.siteId, siteId), eq(experiments.experimentId, experimentId)))
-      .returning({ experimentId: experiments.experimentId });
+    // Completing an experiment ships its winner: the flag then serves that
+    // variant to everyone it targets, so the losing arms stop being assigned.
+    const isCompleting = body.status === "completed" && existing.status !== "completed";
+    let winnerFlag: typeof featureFlags.$inferSelect | undefined;
+    if (isCompleting) {
+      winnerFlag = await db.query.featureFlags.findFirst({
+        where: and(
+          eq(featureFlags.siteId, siteId),
+          eq(featureFlags.flagId, body.featureFlagId ?? existing.featureFlagId)
+        ),
+      });
+      const winner = body.winningVariant?.trim();
+      if (!winnerFlag || !winner) {
+        return reply.status(400).send({ error: "Choose the winning variant to roll out" });
+      }
+      if (!getExperimentVariantKeys(winnerFlag).includes(winner)) {
+        return reply.status(400).send({ error: `Variant "${winner}" is not part of this experiment's flag` });
+      }
+    }
+
+    const [updated] = await db.transaction(async tx => {
+      if (isCompleting && winnerFlag) {
+        await tx
+          .update(featureFlags)
+          .set({
+            ...rolloutWinner(winnerFlag, body.winningVariant!.trim()),
+            enabled: true,
+            version: winnerFlag.version + 1,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(and(eq(featureFlags.siteId, siteId), eq(featureFlags.flagId, winnerFlag.flagId)));
+      }
+
+      return tx
+        .update(experiments)
+        .set(updateData)
+        .where(and(eq(experiments.siteId, siteId), eq(experiments.experimentId, experimentId)))
+        .returning({ experimentId: experiments.experimentId });
+    });
+
+    if (isCompleting) {
+      await invalidateFeatureFlagDefinitions(siteId);
+    }
 
     const record = await getExperimentWithRelations(siteId, updated.experimentId);
     return reply.send({ success: true, data: record ? serializeExperiment(record) : updated });

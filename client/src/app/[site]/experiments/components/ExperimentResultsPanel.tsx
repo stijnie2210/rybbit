@@ -1,6 +1,6 @@
 "use client";
 
-import { sampleRatioMismatch, type VariantStats } from "@rybbit/shared";
+import type { VariantStats } from "@rybbit/shared";
 import { AlertTriangle, Info, Target, TrendingUp, Trophy } from "lucide-react";
 import { DateTime } from "luxon";
 import { useExtracted } from "next-intl";
@@ -13,10 +13,8 @@ import { cn } from "@/lib/utils";
 import {
   formatCompactNumber,
   formatPercent,
-  getControlResult,
+  getExperimentVerdict,
   getVariantKeys,
-  getVariantStats,
-  getVariantWeights,
 } from "../lib/experimentHelpers";
 import { ExperimentConversionChart } from "./ExperimentConversionChart";
 
@@ -291,17 +289,7 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
       isControl: variant === "control",
     }));
 
-  const control = getControlResult(results);
-  const statsByVariant = new Map(results.map(result => [result.variant, getVariantStats(control, result)]));
-  const comparisons = results.flatMap(result => {
-    const stats = statsByVariant.get(result.variant);
-    return stats ? [{ result, stats }] : [];
-  });
-  const winning = comparisons
-    .filter(comparison => comparison.stats.decision === "winning")
-    .sort((a, b) => b.stats.chanceToBeatControl - a.stats.chanceToBeatControl)[0];
-  const controlWinning =
-    !!control && comparisons.length > 0 && comparisons.every(comparison => comparison.stats.decision === "losing");
+  const { control, statsByVariant, comparisons, weights, srm, leader } = getExperimentVerdict(experiment, results);
 
   const liftDomain = Math.min(
     1,
@@ -309,15 +297,6 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
   );
   const controlRate = control?.conversionRate ?? 0;
 
-  const weights = getVariantWeights(experiment);
-  const srm = weights
-    ? sampleRatioMismatch(
-        results.map(result => result.units),
-        results.map(result => weights[result.variant] ?? 0)
-      )
-    : null;
-  // A broken split invalidates the comparison, so no arm is called ahead.
-  const leader = srm?.mismatch ? undefined : (winning?.result ?? (controlWinning ? control : undefined));
   const formatSplit = (values: number[]) => {
     const total = values.reduce((sum, value) => sum + value, 0) || 1;
     return values.map(value => `${((value / total) * 100).toFixed(1)}%`).join(" / ");

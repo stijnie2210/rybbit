@@ -92,9 +92,8 @@ Testing notes: headless Chrome gets blocked by `blockBots` (client signals), so 
   - **SRM:** `sampleRatioMismatch` in `shared` runs a chi-square test of units against the flag's split. It's skipped when condition sets split traffic differently. The amber banner appears at p < 0.001, and while it shows, no variant is called "leading". Verified with seeded 1500/1320 traffic (p = 0.0009).
   - **Conversion over time:** a cumulative daily rate per variant, bucketed in the site time zone. Control is a gray dashed line; variants use indigo-500 / teal-600 / amber-600 / pink-600, a palette validated for CVD in light and dark. Direct end labels are de-overlapped, and there's a legend and a slice tooltip.
   - **Wizard:** both wizards already had exact snippets. Fixed Phase 0 finding 3: flag and variant keys keep separators while typing and are trimmed on blur. Goal copy now says "visitors".
-- Still open: what Complete should do to the flag (roll out the winner, or disable it), and Pause still leaves the flag assigning. Those are product decisions (Phase 0 finding 2).
-
-Not yet done: nothing planned beyond the open questions above.
+- Complete rolls out the winner (decided 2026-09-26). The Complete button opens a dialog that preselects the statistical winner: the winning variant, or control when every variant loses or nothing is clear. Moving an experiment to `completed` now requires `winningVariant` (400 otherwise), and it must be one of the flag's variants. In the same transaction the flag gets `rolloutWinner`: the winner at 100% and other variants at 0% in every condition set, flag and set rollout at 100%, and targeting rules kept. The version is bumped and the flag cache invalidated. Verified: 6 fresh visitors all got variant_a after completion.
+- Still open: Pause still leaves the flag assigning (Phase 0 finding 2).
 
 ## Dev setup on a new machine
 1. Node >= 22.13 (24 recommended), `corepack enable`, `pnpm install`.

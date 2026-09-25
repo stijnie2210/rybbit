@@ -88,6 +88,10 @@ export function useUpdateExperiment() {
       queryClient.invalidateQueries({ queryKey: ["experiments", site] });
       queryClient.invalidateQueries({ queryKey: ["experiment-results", variables.experimentId] });
       queryClient.invalidateQueries({ queryKey: ["experiment-timeseries", variables.experimentId] });
+      // Completing rolls the winner out on the experiment's flag.
+      if (variables.payload.status === "completed") {
+        queryClient.invalidateQueries({ queryKey: ["feature-flags", site] });
+      }
     },
   });
 }

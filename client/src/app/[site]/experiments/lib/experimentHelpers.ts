@@ -1,4 +1,4 @@
-import { compareToControl, type VariantStats } from "@rybbit/shared";
+import { compareToControl, sampleRatioMismatch, type VariantStats } from "@rybbit/shared";
 import { DateTime } from "luxon";
 
 import type { Experiment, ExperimentStatus, ExperimentVariantResult } from "@/api/analytics/endpoints";
@@ -99,4 +99,35 @@ export function getVariantWeights(experiment: Experiment): Record<string, number
       Object.entries(weights).every(([key, weight]) => first[key] === weight)
   );
   return sameSplit ? first : null;
+}
+
+/**
+ * Everything the results panel and the completion dialog judge an experiment
+ * by: per-variant stats against control, the split check, and the arm that is
+ * ahead (a winning variant, or control when every variant loses). A broken
+ * split invalidates the comparison, so then nothing is ahead.
+ */
+export function getExperimentVerdict(experiment: Experiment, results: ExperimentVariantResult[]) {
+  const control = getControlResult(results);
+  const statsByVariant = new Map(results.map(result => [result.variant, getVariantStats(control, result)]));
+  const comparisons = results.flatMap(result => {
+    const stats = statsByVariant.get(result.variant);
+    return stats ? [{ result, stats }] : [];
+  });
+  const winning = comparisons
+    .filter(comparison => comparison.stats.decision === "winning")
+    .sort((a, b) => b.stats.chanceToBeatControl - a.stats.chanceToBeatControl)[0];
+  const controlWinning =
+    !!control && comparisons.length > 0 && comparisons.every(comparison => comparison.stats.decision === "losing");
+
+  const weights = getVariantWeights(experiment);
+  const srm = weights
+    ? sampleRatioMismatch(
+        results.map(result => result.units),
+        results.map(result => weights[result.variant] ?? 0)
+      )
+    : null;
+  const leader = srm?.mismatch ? undefined : (winning?.result ?? (controlWinning ? control : undefined));
+
+  return { control, statsByVariant, comparisons, weights, srm, leader };
 }

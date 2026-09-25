@@ -10,7 +10,7 @@ vi.mock("../../db/postgres/postgres.js", () => ({
 import { getTimeStatement } from "../analytics/utils/timeWindow.js";
 import { buildExperimentResultQueries, EXPERIMENT_UNIT, resolveExperimentWindow } from "./getExperimentResults.js";
 import { buildCumulativeSeries } from "./getExperimentTimeseries.js";
-import { buildExperimentResults } from "./utils.js";
+import { buildExperimentResults, rolloutWinner } from "./utils.js";
 
 const CAMPAIGN_FILTER = JSON.stringify([{ parameter: "utm_campaign", type: "equals", value: ["recipe_book_2026"] }]);
 
@@ -197,5 +197,40 @@ describe("buildExperimentResults", () => {
     ]);
 
     expect(control).toMatchObject({ units: 4, sessions: 6, exposures: 8, conversions: 1, conversionRate: 0.25 });
+  });
+});
+
+describe("rolloutWinner", () => {
+  const flag = {
+    rolloutPercentage: 40,
+    variants: [],
+    conditionSets: [
+      {
+        name: "Beta users",
+        rules: [{ field: "country", operator: "equals", value: "NL" }],
+        rolloutPercentage: 50,
+        variants: [
+          { key: "control", name: "Control", rolloutPercentage: 50 },
+          { key: "variant_a", name: "Variant A", rolloutPercentage: 50, payload: { copy: "Try it" } },
+        ],
+      },
+      { name: "Everyone else", rules: [], variants: [] },
+    ],
+  } as never;
+
+  it("serves the winner to everyone the flag targets, keeping rules and variant details", () => {
+    const rollout = rolloutWinner(flag, "variant_a");
+
+    expect(rollout.rolloutPercentage).toBe(100);
+    expect(rollout.conditionSets[0]).toMatchObject({
+      name: "Beta users",
+      rules: [{ field: "country", operator: "equals", value: "NL" }],
+      rolloutPercentage: 100,
+      variants: [
+        { key: "control", name: "Control", rolloutPercentage: 0 },
+        { key: "variant_a", name: "Variant A", rolloutPercentage: 100, payload: { copy: "Try it" } },
+      ],
+    });
+    expect(rollout.conditionSets[1]).toEqual({ name: "Everyone else", rules: [], variants: [], rolloutPercentage: 100 });
   });
 });

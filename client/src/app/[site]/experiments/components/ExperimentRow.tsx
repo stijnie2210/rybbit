@@ -17,6 +17,7 @@ import { useExtracted } from "next-intl";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { formatRelativeTime } from "../lib/experimentHelpers";
+import { CompleteExperimentDialog } from "./CompleteExperimentDialog";
 import { ExperimentDialog } from "./ExperimentDialog";
 import { ExperimentResultsPanel } from "./ExperimentResultsPanel";
 import { StatusBadge } from "./StatusBadge";
@@ -35,6 +36,7 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
   const deleteMutation = useDeleteExperiment();
   const updateMutation = useUpdateExperiment();
   const [editOpen, setEditOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
   const primaryGoalName =
     experiment.primaryGoal?.name || (experiment.primaryGoalId ? t("Untitled goal") : t("No goal"));
 
@@ -127,7 +129,7 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => setStatus("completed")}
+              onClick={() => setCompleteOpen(true)}
               disabled={updateMutation.isPending}
             >
               <Square className="h-3.5 w-3.5" />
@@ -164,6 +166,7 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
       </div>
 
       <ExperimentDialog experiment={experiment} experiments={experiments} open={editOpen} onOpenChange={setEditOpen} />
+      <CompleteExperimentDialog experiment={experiment} open={completeOpen} onOpenChange={setCompleteOpen} />
     </div>
   );
 }
