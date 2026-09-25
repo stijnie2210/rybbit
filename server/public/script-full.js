@@ -698,9 +698,16 @@
         return "";
       }
     }
+    // A multivariate flag that assigned no variant (disabled, outside its
+    // rollout, or not targeted) evaluates to `false`. That is not an arm, so it
+    // must not read as one: callers get their fallback and nothing is recorded.
+    isUnassignedVariant(assignment) {
+      return assignment.flagType === "multivariate" && typeof assignment.value !== "string";
+    }
     getFeatureFlagEventPayload() {
       const payload = {};
       for (const [key, assignment] of Object.entries(this.config.featureFlags || {})) {
+        if (this.isUnassignedVariant(assignment)) continue;
         payload[key] = this.serializeFeatureFlagValue(assignment.value);
       }
       return payload;
@@ -878,7 +885,7 @@
     }
     getFeatureFlag(key, fallback) {
       const assignment = this.config.featureFlags?.[key];
-      if (!assignment) {
+      if (!assignment || this.isUnassignedVariant(assignment)) {
         return fallback;
       }
       const exposureKey = `${key}:${assignment.version}:${this.serializeFeatureFlagValue(assignment.value)}`;

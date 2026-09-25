@@ -173,3 +173,21 @@ export function rolloutWinner(flag: FeatureFlagRecord, winner: string) {
     ),
   };
 }
+
+/**
+ * How an experiment's status change drives its flag, or null when the flag is
+ * already right. Completing ships `winner`; pausing switches the flag off;
+ * starting or resuming switches it back on.
+ */
+export function flagUpdateForStatusChange(
+  from: ExperimentStatus,
+  to: ExperimentStatus,
+  flag: FeatureFlagRecord,
+  winner?: string
+): Partial<FeatureFlagRecord> | null {
+  if (from === to) return null;
+  if (to === "completed") return winner ? { ...rolloutWinner(flag, winner), enabled: true } : null;
+
+  const enabled = to === "paused" ? false : to === "running" ? true : undefined;
+  return enabled === undefined || flag.enabled === enabled ? null : { enabled };
+}

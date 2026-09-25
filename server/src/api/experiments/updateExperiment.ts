@@ -11,7 +11,7 @@ import {
   getExperimentWithRelations,
   parseExperimentId,
   parseSiteId,
-  rolloutWinner,
+  flagUpdateForStatusChange,
   serializeExperiment,
   timestampsForStatus,
   validateExperimentReferences,
@@ -65,37 +65,44 @@ export async function updateExperiment(
       Object.assign(updateData, timestampsForStatus(body.status, existing));
     }
 
-    // Completing an experiment ships its winner: the flag then serves that
-    // variant to everyone it targets, so the losing arms stop being assigned.
+    // The experiment's status drives its flag. Completing ships the winner to
+    // everyone the flag targets. Pausing switches the flag off, so visitors get
+    // the code's fallback and no new exposures are recorded; starting or
+    // resuming switches it back on, and deterministic bucketing returns each
+    // visitor to the variant they had before.
     const isCompleting = body.status === "completed" && existing.status !== "completed";
-    let winnerFlag: typeof featureFlags.$inferSelect | undefined;
-    if (isCompleting) {
-      winnerFlag = await db.query.featureFlags.findFirst({
+
+    let flag: typeof featureFlags.$inferSelect | undefined;
+    if (body.status !== undefined && body.status !== existing.status) {
+      flag = await db.query.featureFlags.findFirst({
         where: and(
           eq(featureFlags.siteId, siteId),
           eq(featureFlags.flagId, body.featureFlagId ?? existing.featureFlagId)
         ),
       });
-      const winner = body.winningVariant?.trim();
-      if (!winnerFlag || !winner) {
+      if (!flag) {
+        return reply.status(400).send({ error: "Feature flag not found" });
+      }
+    }
+
+    const winner = body.winningVariant?.trim();
+    if (isCompleting && flag) {
+      if (!winner) {
         return reply.status(400).send({ error: "Choose the winning variant to roll out" });
       }
-      if (!getExperimentVariantKeys(winnerFlag).includes(winner)) {
+      if (!getExperimentVariantKeys(flag).includes(winner)) {
         return reply.status(400).send({ error: `Variant "${winner}" is not part of this experiment's flag` });
       }
     }
 
+    const flagUpdate = flag && body.status ? flagUpdateForStatusChange(existing.status, body.status, flag, winner) : null;
+
     const [updated] = await db.transaction(async tx => {
-      if (isCompleting && winnerFlag) {
+      if (flag && flagUpdate) {
         await tx
           .update(featureFlags)
-          .set({
-            ...rolloutWinner(winnerFlag, body.winningVariant!.trim()),
-            enabled: true,
-            version: winnerFlag.version + 1,
-            updatedAt: new Date().toISOString(),
-          })
-          .where(and(eq(featureFlags.siteId, siteId), eq(featureFlags.flagId, winnerFlag.flagId)));
+          .set({ ...flagUpdate, version: flag.version + 1, updatedAt: new Date().toISOString() })
+          .where(and(eq(featureFlags.siteId, siteId), eq(featureFlags.flagId, flag.flagId)));
       }
 
       return tx
@@ -105,7 +112,7 @@ export async function updateExperiment(
         .returning({ experimentId: experiments.experimentId });
     });
 
-    if (isCompleting) {
+    if (flagUpdate) {
       await invalidateFeatureFlagDefinitions(siteId);
     }
 

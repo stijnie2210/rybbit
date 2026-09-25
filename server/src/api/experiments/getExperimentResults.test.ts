@@ -10,7 +10,7 @@ vi.mock("../../db/postgres/postgres.js", () => ({
 import { getTimeStatement } from "../analytics/utils/timeWindow.js";
 import { buildExperimentResultQueries, EXPERIMENT_UNIT, resolveExperimentWindow } from "./getExperimentResults.js";
 import { buildCumulativeSeries } from "./getExperimentTimeseries.js";
-import { buildExperimentResults, rolloutWinner } from "./utils.js";
+import { buildExperimentResults, flagUpdateForStatusChange, rolloutWinner } from "./utils.js";
 
 const CAMPAIGN_FILTER = JSON.stringify([{ parameter: "utm_campaign", type: "equals", value: ["recipe_book_2026"] }]);
 
@@ -39,6 +39,7 @@ describe("experiment result queries", () => {
     expect(exposureQuery.match(/INNER JOIN FilteredSessions USING \(session_id\)/g)).toHaveLength(2);
     expect(exposureQuery).toContain("event_name = 'feature_flag_exposure'");
     expect(exposureQuery).toContain("type = 'form_submit'");
+    expect(exposureQuery).toContain("JSONExtractString(toString(props), 'value') NOT IN ('', 'false')");
 
     // The campaign condition belongs only to FilteredSessions, not separately
     // to the exposure and goal event rows.
@@ -51,7 +52,7 @@ describe("experiment result queries", () => {
     expect(assignmentQuery).toContain("FilteredSessions AS");
     expect(assignmentQuery).toContain("WHERE 1 = 1 AND utm_campaign = 'recipe_book_2026'");
     expect(assignmentQuery.match(/INNER JOIN FilteredSessions USING \(session_id\)/g)).toHaveLength(2);
-    expect(assignmentQuery).toContain("feature_flags['recipe_book_test'] != ''");
+    expect(assignmentQuery).toContain("feature_flags['recipe_book_test'] NOT IN ('', 'false')");
     expect(assignmentQuery).toContain("type = 'form_submit'");
     expect(assignmentQuery.match(/utm_campaign = 'recipe_book_2026'/g)).toHaveLength(1);
   });
@@ -102,7 +103,7 @@ describe("experiment result queries", () => {
       expect(sql).toContain("GROUP BY variant, day");
     }
     expect(exposureTimeseriesQuery).toContain("event_name = 'feature_flag_exposure'");
-    expect(assignmentTimeseriesQuery).toContain("feature_flags['recipe_book_test'] != ''");
+    expect(assignmentTimeseriesQuery).toContain("feature_flags['recipe_book_test'] NOT IN ('', 'false')");
   });
 });
 
@@ -232,5 +233,39 @@ describe("rolloutWinner", () => {
       ],
     });
     expect(rollout.conditionSets[1]).toEqual({ name: "Everyone else", rules: [], variants: [], rolloutPercentage: 100 });
+  });
+});
+
+describe("flagUpdateForStatusChange", () => {
+  const flag = (enabled: boolean) =>
+    ({
+      enabled,
+      rolloutPercentage: 100,
+      variants: [],
+      conditionSets: [{ rules: [], variants: [{ key: "control", rolloutPercentage: 50 }, { key: "test", rolloutPercentage: 50 }] }],
+    }) as never;
+
+  it("switches the flag off when pausing and back on when resuming", () => {
+    expect(flagUpdateForStatusChange("running", "paused", flag(true))).toEqual({ enabled: false });
+    expect(flagUpdateForStatusChange("paused", "running", flag(false))).toEqual({ enabled: true });
+  });
+
+  it("switches a disabled flag on when a draft starts", () => {
+    expect(flagUpdateForStatusChange("draft", "running", flag(false))).toEqual({ enabled: true });
+  });
+
+  it("leaves the flag alone when it is already right or nothing changes", () => {
+    expect(flagUpdateForStatusChange("draft", "running", flag(true))).toBeNull();
+    expect(flagUpdateForStatusChange("running", "running", flag(true))).toBeNull();
+    expect(flagUpdateForStatusChange("running", "draft", flag(true))).toBeNull();
+  });
+
+  it("ships the winner, enabled, when completing", () => {
+    const update = flagUpdateForStatusChange("paused", "completed", flag(false), "test")!;
+    expect(update.enabled).toBe(true);
+    expect(update.conditionSets?.[0].variants).toEqual([
+      { key: "control", rolloutPercentage: 0 },
+      { key: "test", rolloutPercentage: 100 },
+    ]);
   });
 });

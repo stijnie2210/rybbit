@@ -2,6 +2,16 @@
 
 import type { Experiment, ExperimentStatus } from "@/api/analytics/endpoints";
 import { useDeleteExperiment, useUpdateExperiment } from "@/api/analytics/hooks/experiments/useExperiments";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -37,6 +47,7 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
   const updateMutation = useUpdateExperiment();
   const [editOpen, setEditOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
   const primaryGoalName =
     experiment.primaryGoal?.name || (experiment.primaryGoalId ? t("Untitled goal") : t("No goal"));
 
@@ -111,14 +122,14 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
           {experiment.status !== "running" && experiment.status !== "completed" && (
             <Button size="sm" onClick={() => setStatus("running")} disabled={updateMutation.isPending}>
               <Play className="h-3.5 w-3.5" />
-              {t("Start")}
+              {experiment.status === "paused" ? t("Resume") : t("Start")}
             </Button>
           )}
           {experiment.status === "running" && (
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => setStatus("paused")}
+              onClick={() => setPauseOpen(true)}
               disabled={updateMutation.isPending}
             >
               <Pause className="h-3.5 w-3.5" />
@@ -167,6 +178,25 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
 
       <ExperimentDialog experiment={experiment} experiments={experiments} open={editOpen} onOpenChange={setEditOpen} />
       <CompleteExperimentDialog experiment={experiment} open={completeOpen} onOpenChange={setCompleteOpen} />
+      <AlertDialog open={pauseOpen} onOpenChange={setPauseOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("Pause experiment?")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "Pausing switches the {flagKey} flag off, so every visitor gets the fallback in your code and no new exposures are recorded. Anything else that reads this flag is switched off too. Resuming switches it back on and returns visitors to their variants.",
+                { flagKey: experiment.featureFlag.key }
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setStatus("paused")} disabled={updateMutation.isPending}>
+              {t("Pause")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

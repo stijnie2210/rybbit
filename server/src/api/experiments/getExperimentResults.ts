@@ -21,6 +21,10 @@ import {
 // (or from clients that omit it) fall back to one unit per session.
 export const EXPERIMENT_UNIT = "if(visitor_id != '', visitor_id, session_id)";
 
+// A multivariate flag that assigned no variant (disabled, outside rollout, not
+// targeted) evaluates to false; older scripts still record that as a value.
+const UNASSIGNED_VALUES = "'', 'false'";
+
 export type ExperimentResultsQuery = FilterParams<{ window?: "experiment" | "range" }>;
 
 export type ExperimentWindow = { mode: "experiment" | "range"; start: string | null; end: string | null };
@@ -112,7 +116,7 @@ export function buildExperimentResultQueries({
             AND type = 'custom_event'
             AND event_name = 'feature_flag_exposure'
             AND JSONExtractString(toString(props), 'key') = ${escapedFlagKey}
-            AND JSONExtractString(toString(props), 'value') != ''
+            AND JSONExtractString(toString(props), 'value') NOT IN (${UNASSIGNED_VALUES})
             ${timeStatement}
           GROUP BY unit
         )`
@@ -127,7 +131,7 @@ export function buildExperimentResultQueries({
           FROM events
           ${filteredSessionsJoin}
           WHERE site_id = ${escapedSiteId}
-            AND feature_flags[${escapedFlagKey}] != ''
+            AND feature_flags[${escapedFlagKey}] NOT IN (${UNASSIGNED_VALUES})
             ${timeStatement}
           GROUP BY unit
         )`;
