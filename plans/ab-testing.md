@@ -86,7 +86,15 @@ Testing notes: headless Chrome gets blocked by `blockBots` (client signals), so 
 
 - Phase 2 (2026-09-26): `shared/src/experimentStats.ts` replaces the client z-test. It uses a Beta(1,1) prior and computes chance to beat control with Evan Miller's exact closed-form sum. That sum is deterministic, so it replaces the planned Monte Carlo, and above 5000 conversions it falls back to a normal approximation. It also gives relative lift with a 95% credible interval (delta method on the log ratio) and expected loss per arm (normal approximation). Decision rule: "winning" at ≥ 95% chance and relative risk < 0.25% of the control rate; "losing" at ≤ 5% with low control risk; otherwise inconclusive. The panel shows chance to beat control, an interval bar on a shared zero-centred scale, and risk. The verdict is "{variant} leading", "Gathering data" or "No clear winner". `shared` now has Vitest (`pnpm test` runs it). Reference values come from numerical integration; GrowthBook's documented examples weren't checked (offline).
 
-Not yet done: Phase 3.
+- Phase 3 (2026-09-26):
+  - **Experiment window:** results and the new `/:experimentId/timeseries` endpoint default to `window=experiment`, i.e. `[startedAt, endedAt ?? now]` as UTC instants (`resolveExperimentWindow`). The panel's "Experiment run / Date filter" switch sends `window=range` to use the page date selector instead. A completed experiment now stops collecting: experiment 2 showed 0 visitors for its 8-minute run, against 12 under the date filter.
+  - **One unit set for both views:** results and the time series share one `experiment_units` CTE (exposure or assignment fallback), so the chart always ends at the panel's rates.
+  - **SRM:** `sampleRatioMismatch` in `shared` runs a chi-square test of units against the flag's split. It's skipped when condition sets split traffic differently. The amber banner appears at p < 0.001, and while it shows, no variant is called "leading". Verified with seeded 1500/1320 traffic (p = 0.0009).
+  - **Conversion over time:** a cumulative daily rate per variant, bucketed in the site time zone. Control is a gray dashed line; variants use indigo-500 / teal-600 / amber-600 / pink-600, a palette validated for CVD in light and dark. Direct end labels are de-overlapped, and there's a legend and a slice tooltip.
+  - **Wizard:** both wizards already had exact snippets. Fixed Phase 0 finding 3: flag and variant keys keep separators while typing and are trimmed on blur. Goal copy now says "visitors".
+- Still open: what Complete should do to the flag (roll out the winner, or disable it), and Pause still leaves the flag assigning. Those are product decisions (Phase 0 finding 2).
+
+Not yet done: nothing planned beyond the open questions above.
 
 ## Dev setup on a new machine
 1. Node >= 22.13 (24 recommended), `corepack enable`, `pnpm install`.

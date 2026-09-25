@@ -86,6 +86,20 @@ export type ExperimentResults = {
   totalConversions: number;
   hasGoal: boolean;
   measurement: "exposure" | "assignment";
+  window: ExperimentWindow;
+};
+
+export type ExperimentWindowMode = "experiment" | "range";
+
+/** Bounds are UTC "YYYY-MM-DD HH:MM:SS" in experiment mode, dates in range mode. */
+export type ExperimentWindow = { mode: ExperimentWindowMode; start: string | null; end: string | null };
+
+export type ExperimentTimeseriesPoint = { date: string; units: number; conversions: number; conversionRate: number };
+
+export type ExperimentTimeseries = {
+  variants: { variant: string; points: ExperimentTimeseriesPoint[] }[];
+  measurement: "exposure" | "assignment";
+  window: ExperimentWindow;
 };
 
 export async function fetchExperiments(site: string | number): Promise<Experiment[]> {

@@ -80,3 +80,23 @@ export function getVariantStats(
     { units: variant.units, conversions: variant.conversions }
   );
 }
+
+// The configured split per variant, or null when condition sets split traffic
+// differently: then no single expected ratio exists to test against.
+export function getVariantWeights(experiment: Experiment): Record<string, number> | null {
+  const splits = (experiment.featureFlag.conditionSets || [])
+    .map(conditionSet => conditionSet.variants || [])
+    .filter(variants => variants.length > 0);
+  if (splits.length === 0 && experiment.featureFlag.variants?.length) splits.push(experiment.featureFlag.variants);
+  if (splits.length === 0) return null;
+
+  const toWeights = (variants: { key: string; rolloutPercentage: number }[]) =>
+    Object.fromEntries(variants.map(variant => [variant.key, Number(variant.rolloutPercentage) || 0]));
+  const [first, ...rest] = splits.map(toWeights);
+  const sameSplit = rest.every(
+    weights =>
+      Object.keys(weights).length === Object.keys(first).length &&
+      Object.entries(weights).every(([key, weight]) => first[key] === weight)
+  );
+  return sameSplit ? first : null;
+}

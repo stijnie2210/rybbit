@@ -1,12 +1,14 @@
 "use client";
 
-import type { VariantStats } from "@rybbit/shared";
-import { Info, Target, TrendingUp, Trophy } from "lucide-react";
+import { sampleRatioMismatch, type VariantStats } from "@rybbit/shared";
+import { AlertTriangle, Info, Target, TrendingUp, Trophy } from "lucide-react";
+import { DateTime } from "luxon";
 import { useExtracted } from "next-intl";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 
-import type { Experiment, ExperimentVariantResult } from "@/api/analytics/endpoints";
-import { useExperimentResults } from "@/api/analytics/hooks/experiments/useExperiments";
+import type { Experiment, ExperimentVariantResult, ExperimentWindow, ExperimentWindowMode } from "@/api/analytics/endpoints";
+import { useExperimentResults, useExperimentTimeseries } from "@/api/analytics/hooks/experiments/useExperiments";
+import { useTimezone } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
   formatCompactNumber,
@@ -14,7 +16,9 @@ import {
   getControlResult,
   getVariantKeys,
   getVariantStats,
+  getVariantWeights,
 } from "../lib/experimentHelpers";
+import { ExperimentConversionChart } from "./ExperimentConversionChart";
 
 const formatSignedPercent = (value: number) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
 
@@ -58,6 +62,59 @@ function LiftIntervalBar({ interval, lift, domain }: { interval: [number, number
 }
 
 type VariantTone = "winner" | "leading" | "control" | "variant";
+
+function formatWindowInstant(value: string, timeZone: string) {
+  return DateTime.fromSQL(value, { zone: "utc" }).setZone(timeZone).toFormat("MMM d, HH:mm");
+}
+
+function WindowSwitch({
+  mode,
+  window,
+  onChange,
+}: {
+  mode: ExperimentWindowMode;
+  window: ExperimentWindow | undefined;
+  onChange: (mode: ExperimentWindowMode) => void;
+}) {
+  const t = useExtracted();
+  const timeZone = useTimezone();
+  const options: { value: ExperimentWindowMode; label: string }[] = [
+    { value: "experiment", label: t("Experiment run") },
+    { value: "range", label: t("Date filter") },
+  ];
+
+  const description =
+    window?.mode === "experiment" && window.start
+      ? window.end
+        ? `${formatWindowInstant(window.start, timeZone)} – ${formatWindowInstant(window.end, timeZone)}`
+        : t("Since {start}", { start: formatWindowInstant(window.start, timeZone) })
+      : null;
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+      {description && <span className="tabular-nums">{description}</span>}
+      <div role="radiogroup" className="inline-flex rounded-md border border-neutral-150 p-0.5 dark:border-neutral-800">
+        {options.map(option => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={mode === option.value}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "rounded px-2 py-0.5 transition-colors",
+              mode === option.value
+                ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50"
+                : "hover:text-neutral-700 dark:hover:text-neutral-200"
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function VariantTag({ tone, children }: { tone: VariantTone; children: ReactNode }) {
   const icon =
@@ -180,7 +237,10 @@ function VariantResultRow({
 
 export function ExperimentResultsPanel({ experiment }: { experiment: Experiment }) {
   const t = useExtracted();
-  const { data, isLoading } = useExperimentResults(experiment.experimentId, !!experiment.primaryGoalId);
+  const [windowMode, setWindowMode] = useState<ExperimentWindowMode>("experiment");
+  const effectiveMode: ExperimentWindowMode = experiment.startedAt ? windowMode : "range";
+  const { data, isLoading } = useExperimentResults(experiment.experimentId, !!experiment.primaryGoalId, effectiveMode);
+  const { data: timeseries } = useExperimentTimeseries(experiment.experimentId, !!experiment.primaryGoalId, effectiveMode);
   const fallbackVariants = getVariantKeys(experiment);
 
   if (!experiment.primaryGoalId) {
@@ -242,12 +302,26 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
     .sort((a, b) => b.stats.chanceToBeatControl - a.stats.chanceToBeatControl)[0];
   const controlWinning =
     !!control && comparisons.length > 0 && comparisons.every(comparison => comparison.stats.decision === "losing");
-  const leader = winning?.result ?? (controlWinning ? control : undefined);
+
   const liftDomain = Math.min(
     1,
     Math.max(0.05, ...comparisons.flatMap(({ stats }) => stats.liftInterval.map(value => Math.abs(value))))
   );
   const controlRate = control?.conversionRate ?? 0;
+
+  const weights = getVariantWeights(experiment);
+  const srm = weights
+    ? sampleRatioMismatch(
+        results.map(result => result.units),
+        results.map(result => weights[result.variant] ?? 0)
+      )
+    : null;
+  // A broken split invalidates the comparison, so no arm is called ahead.
+  const leader = srm?.mismatch ? undefined : (winning?.result ?? (controlWinning ? control : undefined));
+  const formatSplit = (values: number[]) => {
+    const total = values.reduce((sum, value) => sum + value, 0) || 1;
+    return values.map(value => `${((value / total) * 100).toFixed(1)}%`).join(" / ");
+  };
   const maxRate = Math.max(...results.map(result => result.conversionRate), 0);
   const totalUnits = data?.totalUnits ?? results.reduce((sum, result) => sum + result.units, 0);
   const totalConversions = data?.totalConversions ?? results.reduce((sum, result) => sum + result.conversions, 0);
@@ -284,6 +358,29 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
 
   return (
     <div className="grid gap-2.5">
+      {experiment.startedAt && (
+        <div className="flex justify-end">
+          <WindowSwitch mode={windowMode} window={data?.window} onChange={setWindowMode} />
+        </div>
+      )}
+
+      {srm?.mismatch && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            <span className="font-medium">{t("Sample ratio mismatch.")}</span>{" "}
+            {t(
+              "Visitors split {observed} across variants, but the flag is set to {expected} (p = {pValue}). Assignment or exposure tracking is likely broken, so these results can't be trusted yet.",
+              {
+                observed: formatSplit(results.map(result => result.units)),
+                expected: formatSplit(results.map(result => weights?.[result.variant] ?? 0)),
+                pValue: srm.pValue < 0.0001 ? "<0.0001" : srm.pValue.toFixed(4),
+              }
+            )}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-3">
         <span
           className={cn(
@@ -323,6 +420,16 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
           );
         })}
       </div>
+
+      {timeseries && totalUnits > 0 && (
+        <div className="rounded-md border border-neutral-100 p-3 dark:border-neutral-850">
+          <ExperimentConversionChart
+            data={timeseries}
+            variants={results.map(result => result.variant)}
+            controlVariant={control?.variant}
+          />
+        </div>
+      )}
 
       {measurement === "assignment" && (
         <div className="flex items-start gap-2 rounded-md border border-neutral-100 bg-neutral-50/60 px-3 py-2 text-xs text-neutral-500 dark:border-neutral-850 dark:bg-neutral-950/40 dark:text-neutral-400">

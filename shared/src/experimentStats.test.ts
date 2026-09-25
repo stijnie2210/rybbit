@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   betaPosterior,
+  chiSquarePValue,
   compareToControl,
   expectedLoss,
   probabilityBBeatsA,
   relativeLift,
   RISK_THRESHOLD,
+  sampleRatioMismatch,
 } from "./experimentStats";
 
 const post = (conversions: number, units: number) => betaPosterior({ units, conversions });
@@ -99,5 +101,40 @@ describe("compareToControl", () => {
     const stats = compareToControl({ units: 5000, conversions: 500 }, { units: 5000, conversions: 500 })!;
     expect(stats.chanceToBeatControl).toBeCloseTo(0.5, 6);
     expect(stats.decision).toBe("inconclusive");
+  });
+});
+
+describe("chiSquarePValue", () => {
+  it.each([
+    [3.841459, 1, 0.05],
+    [10.827566, 1, 0.001],
+    [5.991465, 2, 0.05],
+    [0.454936, 1, 0.5],
+    [30, 3, 1.3800570e-6],
+  ])("chi2 = %f with %i df has p = %f", (statistic, df, expected) => {
+    expect(chiSquarePValue(statistic, df) / expected).toBeCloseTo(1, 4);
+  });
+});
+
+describe("sampleRatioMismatch", () => {
+  it("passes a split that matches the configuration", () => {
+    const check = sampleRatioMismatch([5000, 5200], [50, 50])!;
+    expect(check.chiSquare).toBeCloseTo(3.9216, 4);
+    expect(check.pValue).toBeCloseTo(0.0477, 3);
+    expect(check.mismatch).toBe(false);
+  });
+
+  it("flags a split that is far from the configuration", () => {
+    expect(sampleRatioMismatch([5000, 5400], [50, 50])!.mismatch).toBe(true);
+  });
+
+  it("respects uneven weights", () => {
+    expect(sampleRatioMismatch([9000, 1000], [90, 10])!.chiSquare).toBeCloseTo(0, 10);
+    expect(sampleRatioMismatch([5000, 5000], [90, 10])!.mismatch).toBe(true);
+  });
+
+  it("returns null when there is nothing to test", () => {
+    expect(sampleRatioMismatch([0, 0], [50, 50])).toBeNull();
+    expect(sampleRatioMismatch([10], [100])).toBeNull();
   });
 });

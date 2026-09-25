@@ -161,3 +161,71 @@ export function compareToControl(control: ArmCounts, variant: ArmCounts): Varian
     decision,
   };
 }
+
+// Regularized upper incomplete gamma Q(a, x), series below a + 1 and a
+// continued fraction above it (Numerical Recipes gammq).
+function upperIncompleteGamma(a: number, x: number): number {
+  if (x <= 0) return 1;
+  const logPrefix = -x + a * Math.log(x) - logGamma(a);
+
+  if (x < a + 1) {
+    let term = 1 / a;
+    let sum = term;
+    for (let n = 1; n < 500; n++) {
+      term *= x / (a + n);
+      sum += term;
+      if (Math.abs(term) < Math.abs(sum) * 1e-15) break;
+    }
+    return 1 - sum * Math.exp(logPrefix);
+  }
+
+  const tiny = 1e-300;
+  let b = x + 1 - a;
+  let c = 1 / tiny;
+  let d = 1 / b;
+  let h = d;
+  for (let i = 1; i < 500; i++) {
+    const an = -i * (i - a);
+    b += 2;
+    d = an * d + b;
+    if (Math.abs(d) < tiny) d = tiny;
+    c = b + an / c;
+    if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d;
+    const delta = d * c;
+    h *= delta;
+    if (Math.abs(delta - 1) < 1e-15) break;
+  }
+  return Math.exp(logPrefix) * h;
+}
+
+/** Survival function of the chi-square distribution. */
+export function chiSquarePValue(statistic: number, degreesOfFreedom: number): number {
+  return upperIncompleteGamma(degreesOfFreedom / 2, statistic / 2);
+}
+
+/** Below this p-value the observed split is treated as broken assignment. */
+export const SRM_P_VALUE = 0.001;
+
+export type SampleRatioCheck = { chiSquare: number; pValue: number; mismatch: boolean };
+
+/**
+ * Chi-square goodness-of-fit of observed units per arm against the configured
+ * split (weights in any unit, e.g. rollout percentages). Null when there is
+ * nothing to test: fewer than two weighted arms or no units yet.
+ */
+export function sampleRatioMismatch(observed: number[], weights: number[]): SampleRatioCheck | null {
+  const arms = observed
+    .map((count, index) => ({ count: Math.max(0, count), weight: Math.max(0, weights[index] ?? 0) }))
+    .filter(arm => arm.weight > 0);
+  const totalUnits = arms.reduce((sum, arm) => sum + arm.count, 0);
+  const totalWeight = arms.reduce((sum, arm) => sum + arm.weight, 0);
+  if (arms.length < 2 || totalUnits === 0) return null;
+
+  const chiSquare = arms.reduce((sum, arm) => {
+    const expected = (totalUnits * arm.weight) / totalWeight;
+    return sum + ((arm.count - expected) * (arm.count - expected)) / expected;
+  }, 0);
+  const pValue = chiSquarePValue(chiSquare, arms.length - 1);
+  return { chiSquare, pValue, mismatch: pValue < SRM_P_VALUE };
+}

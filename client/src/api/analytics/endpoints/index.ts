@@ -95,8 +95,12 @@ export type {
   ExperimentPayload,
   ExperimentResults,
   ExperimentStatus,
+  ExperimentTimeseries,
+  ExperimentTimeseriesPoint,
   ExperimentUpdatePayload,
   ExperimentVariantResult,
+  ExperimentWindow,
+  ExperimentWindowMode,
 } from "./experiments";
 
 // Funnels endpoints

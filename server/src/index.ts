@@ -102,6 +102,7 @@ import {
   createExperiment,
   deleteExperiment,
   getExperimentResults,
+  getExperimentTimeseries,
   getExperiments,
   updateExperiment,
 } from "./api/experiments/index.js";
@@ -513,6 +514,7 @@ async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.put("/sites/:siteId/experiments/:experimentId", adminExperimentsWrite, updateExperiment);
   fastify.delete("/sites/:siteId/experiments/:experimentId", adminExperimentsWrite, deleteExperiment);
   fastify.get("/sites/:siteId/experiments/:experimentId/results", authExperimentsRead, getExperimentResults);
+  fastify.get("/sites/:siteId/experiments/:experimentId/timeseries", authExperimentsRead, getExperimentTimeseries);
   fastify.get("/sites/:siteId/events/names", cachedEventsRead, getEventNames);
   fastify.get("/sites/:siteId/events/properties", publicEventsRead, getEventProperties);
   fastify.get("/sites/:siteId/events/autocapture", cachedEventsRead, getAutocaptureEvents);
