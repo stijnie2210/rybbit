@@ -1,19 +1,61 @@
 "use client";
 
-import type { Experiment, ExperimentVariantResult } from "@/api/analytics/endpoints";
-import { useExperimentResults } from "@/api/analytics/hooks/experiments/useExperiments";
-import { cn } from "@/lib/utils";
+import type { VariantStats } from "@rybbit/shared";
 import { Info, Target, TrendingUp, Trophy } from "lucide-react";
 import { useExtracted } from "next-intl";
 import type { ReactNode } from "react";
+
+import type { Experiment, ExperimentVariantResult } from "@/api/analytics/endpoints";
+import { useExperimentResults } from "@/api/analytics/hooks/experiments/useExperiments";
+import { cn } from "@/lib/utils";
 import {
   formatCompactNumber,
   formatPercent,
   getControlResult,
-  getLeadingResult,
-  getVariantConfidence,
   getVariantKeys,
+  getVariantStats,
 } from "../lib/experimentHelpers";
+
+const formatSignedPercent = (value: number) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
+
+// Keeps a near-certain posterior from rounding to a claim of certainty.
+function formatBoundedPercent(value: number, digits: number) {
+  const floor = 10 ** -digits;
+  const percent = value * 100;
+  if (percent > 0 && percent < floor) return `<${floor.toFixed(digits)}`;
+  if (percent < 100 && percent > 100 - floor) return `>${(100 - floor).toFixed(digits)}`;
+  return percent.toFixed(digits);
+}
+
+// Credible interval of the relative lift on a scale shared by every variant,
+// with zero in the middle so "clears zero" reads at a glance.
+function LiftIntervalBar({ interval, lift, domain }: { interval: [number, number]; lift: number; domain: number }) {
+  const toPercent = (value: number) => ((Math.max(-domain, Math.min(domain, value)) + domain) / (2 * domain)) * 100;
+  const left = toPercent(interval[0]);
+  const right = toPercent(interval[1]);
+
+  return (
+    <div className="relative h-3 flex-1">
+      <div className="absolute inset-x-0 top-1/2 h-px bg-neutral-200 dark:bg-neutral-800" />
+      <div className="absolute inset-y-0 left-1/2 w-px bg-neutral-300 dark:bg-neutral-700" />
+      <div
+        className={cn(
+          "absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full",
+          interval[0] > 0
+            ? "bg-emerald-500/70"
+            : interval[1] < 0
+              ? "bg-red-500/70"
+              : "bg-neutral-400/70 dark:bg-neutral-500/70"
+        )}
+        style={{ left: `${left}%`, width: `${Math.max(right - left, 0.5)}%` }}
+      />
+      <div
+        className="absolute inset-y-0 w-0.5 -translate-x-1/2 rounded-full bg-neutral-900 dark:bg-neutral-50"
+        style={{ left: `${toPercent(lift)}%` }}
+      />
+    </div>
+  );
+}
 
 type VariantTone = "winner" | "leading" | "control" | "variant";
 
@@ -40,12 +82,16 @@ function VariantResultRow({
   result,
   tone,
   widthPercent,
-  liftConfidence,
+  stats,
+  liftDomain,
+  controlRate,
 }: {
   result: ExperimentVariantResult;
   tone: VariantTone;
   widthPercent: number;
-  liftConfidence: string | null;
+  stats: VariantStats | null;
+  liftDomain: number;
+  controlRate: number;
 }) {
   const t = useExtracted();
   const emphasized = tone === "winner" || tone === "leading";
@@ -94,8 +140,10 @@ function VariantResultRow({
               {result.lift === null ? "—" : `${result.lift >= 0 ? "+" : ""}${formatPercent(result.lift)}`}
             </div>
           )}
-          {liftConfidence && (
-            <div className="mt-0.5 text-[11px] text-neutral-400 dark:text-neutral-500">{liftConfidence}</div>
+          {stats && (
+            <div className="mt-0.5 text-[11px] tabular-nums text-neutral-400 dark:text-neutral-500">
+              {t("{chance}% chance to beat control", { chance: formatBoundedPercent(stats.chanceToBeatControl, 1) })}
+            </div>
           )}
         </div>
       </div>
@@ -113,6 +161,19 @@ function VariantResultRow({
           style={{ width: `${widthPercent}%` }}
         />
       </div>
+
+      {stats && (
+        <div className="mt-2.5 flex items-center gap-3 text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400">
+          <span className="w-8 shrink-0">{t("Lift")}</span>
+          <LiftIntervalBar interval={stats.liftInterval} lift={stats.lift} domain={liftDomain} />
+          <span className="w-28 shrink-0 text-right">
+            {formatSignedPercent(stats.liftInterval[0])} … {formatSignedPercent(stats.liftInterval[1])}
+          </span>
+          <span className="w-20 shrink-0 text-right">
+            {t("Risk {risk}", { risk: `${formatBoundedPercent(controlRate > 0 ? stats.riskVariant / controlRate : 0, 2)}%` })}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -171,19 +232,32 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
     }));
 
   const control = getControlResult(results);
-  const leader = getLeadingResult(results);
-  const leaderConfidence = leader && !leader.isControl ? getVariantConfidence(control, leader) : null;
+  const statsByVariant = new Map(results.map(result => [result.variant, getVariantStats(control, result)]));
+  const comparisons = results.flatMap(result => {
+    const stats = statsByVariant.get(result.variant);
+    return stats ? [{ result, stats }] : [];
+  });
+  const winning = comparisons
+    .filter(comparison => comparison.stats.decision === "winning")
+    .sort((a, b) => b.stats.chanceToBeatControl - a.stats.chanceToBeatControl)[0];
+  const controlWinning =
+    !!control && comparisons.length > 0 && comparisons.every(comparison => comparison.stats.decision === "losing");
+  const leader = winning?.result ?? (controlWinning ? control : undefined);
+  const liftDomain = Math.min(
+    1,
+    Math.max(0.05, ...comparisons.flatMap(({ stats }) => stats.liftInterval.map(value => Math.abs(value))))
+  );
+  const controlRate = control?.conversionRate ?? 0;
   const maxRate = Math.max(...results.map(result => result.conversionRate), 0);
   const totalUnits = data?.totalUnits ?? results.reduce((sum, result) => sum + result.units, 0);
   const totalConversions = data?.totalConversions ?? results.reduce((sum, result) => sum + result.conversions, 0);
   const measurement = data?.measurement ?? "exposure";
 
   const officialWinner = experiment.winningVariant || null;
-  const isLeaderSignificant = !!leader && !!leaderConfidence?.isSignificant;
 
   const toneFor = (result: ExperimentVariantResult): VariantTone => {
     if (officialWinner && result.variant === officialWinner) return "winner";
-    if (!officialWinner && isLeaderSignificant && leader && result.variant === leader.variant) return "leading";
+    if (!officialWinner && leader && result.variant === leader.variant) return "leading";
     if (result.isControl) return "control";
     return "variant";
   };
@@ -196,7 +270,7 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
       }
     : totalConversions === 0
       ? { tone: "neutral", icon: null, label: t("No conversions yet") }
-      : isLeaderSignificant && leader
+      : leader
         ? {
             tone: "win",
             icon: <TrendingUp className="h-3.5 w-3.5" />,
@@ -235,16 +309,6 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
           const tone = toneFor(result);
           const widthPercent =
             result.conversionRate <= 0 || maxRate <= 0 ? 0 : Math.max(3, (result.conversionRate / maxRate) * 100);
-          const confidence = result.isControl ? null : getVariantConfidence(control, result);
-          const liftConfidence = result.isControl
-            ? null
-            : confidence
-              ? confidence.isSignificant
-                ? t("{confidence}% confidence", { confidence: (confidence.confidence * 100).toFixed(0) })
-                : t("Not yet significant")
-              : result.conversions > 0
-                ? t("Gathering data")
-                : null;
 
           return (
             <VariantResultRow
@@ -252,7 +316,9 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
               result={result}
               tone={tone}
               widthPercent={widthPercent}
-              liftConfidence={liftConfidence}
+              stats={statsByVariant.get(result.variant) ?? null}
+              liftDomain={liftDomain}
+              controlRate={controlRate}
             />
           );
         })}

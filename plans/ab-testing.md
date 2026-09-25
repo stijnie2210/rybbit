@@ -84,7 +84,9 @@ Testing notes: headless Chrome gets blocked by `blockBots` (client signals), so 
 - Phase 1 (2026-09-25): the script sends `visitor_id` when flags are enabled, it's stored in `events.visitor_id`, and results group by `if(visitor_id != '', visitor_id, session_id)`. The response adds `units` / `totalUnits` (the denominator). `sessions` is now a distinct count per variant. The panel shows "visitors". Verified end to end: 8 visitors behind one IP + UA became 8 units (they had merged into 1 in Phase 0), and 4 visitors exposed in session 1 who converted in session 2 all counted. Results were variant_a 8/5 and control 4/3, both exactly as expected.
 - `src/lib/oauth.test.ts` fails 2 tests (invalid_grant, OTP_EXPIRED) on a clean tree too. It predates this work.
 
-Not yet done: Phases 2–3.
+- Phase 2 (2026-09-26): `shared/src/experimentStats.ts` replaces the client z-test. It uses a Beta(1,1) prior and computes chance to beat control with Evan Miller's exact closed-form sum. That sum is deterministic, so it replaces the planned Monte Carlo, and above 5000 conversions it falls back to a normal approximation. It also gives relative lift with a 95% credible interval (delta method on the log ratio) and expected loss per arm (normal approximation). Decision rule: "winning" at ≥ 95% chance and relative risk < 0.25% of the control rate; "losing" at ≤ 5% with low control risk; otherwise inconclusive. The panel shows chance to beat control, an interval bar on a shared zero-centred scale, and risk. The verdict is "{variant} leading", "Gathering data" or "No clear winner". `shared` now has Vitest (`pnpm test` runs it). Reference values come from numerical integration; GrowthBook's documented examples weren't checked (offline).
+
+Not yet done: Phase 3.
 
 ## Dev setup on a new machine
 1. Node >= 22.13 (24 recommended), `corepack enable`, `pnpm install`.
