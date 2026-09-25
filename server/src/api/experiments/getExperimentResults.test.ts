@@ -7,7 +7,8 @@ vi.mock("../../db/postgres/postgres.js", () => ({
   db: {},
 }));
 
-import { buildExperimentResultQueries } from "./getExperimentResults.js";
+import { buildExperimentResultQueries, EXPERIMENT_UNIT } from "./getExperimentResults.js";
+import { buildExperimentResults } from "./utils.js";
 
 const CAMPAIGN_FILTER = JSON.stringify([{ parameter: "utm_campaign", type: "equals", value: ["recipe_book_2026"] }]);
 
@@ -65,5 +66,51 @@ describe("experiment result queries", () => {
 
     expect(assignmentQuery).toContain("argMin(feature_flags['recipe_book_test'], timestamp) AS variant");
     expect(assignmentQuery).not.toContain("GROUP BY session_id, variant");
+  });
+
+  it("groups exposures and goals by visitor, falling back to the session", () => {
+    const { exposureQuery, assignmentQuery } = buildQueries();
+
+    expect(EXPERIMENT_UNIT).toBe("if(visitor_id != '', visitor_id, session_id)");
+    for (const sql of [exposureQuery, assignmentQuery]) {
+      expect(sql.match(/if\(visitor_id != '', visitor_id, session_id\) AS unit/g)).toHaveLength(2);
+      expect(sql.match(/GROUP BY unit/g)).toHaveLength(2);
+      // Visitors behind one IP + UA share a session; count it once per variant.
+      expect(sql).toMatch(/uniqExactArray\([ea]\.session_ids\) AS sessions/);
+    }
+  });
+
+  it("counts a conversion from a later session against the unit's first exposure", () => {
+    const { exposureQuery, assignmentQuery } = buildQueries();
+
+    expect(exposureQuery).toContain("LEFT JOIN goal_units g ON g.unit = e.unit");
+    expect(exposureQuery).toContain("uniqExactIf(e.unit, g.last_goal_at >= e.exposed_at) AS conversions");
+    expect(exposureQuery).toContain("uniqExact(e.unit) AS units");
+    expect(assignmentQuery).toContain("LEFT JOIN goal_units g ON g.unit = a.unit");
+    expect(assignmentQuery).toContain("uniqExactIf(a.unit, g.last_goal_at >= a.assigned_at) AS conversions");
+  });
+});
+
+describe("buildExperimentResults", () => {
+  it("uses units, not sessions, as the conversion-rate denominator", () => {
+    const results = buildExperimentResults(
+      ["control", "test"],
+      [
+        { variant: "control", units: 10, sessions: 25, exposures: 40, conversions: 5 },
+        { variant: "test", units: 10, sessions: 12, exposures: 15, conversions: 6 },
+      ]
+    );
+
+    expect(results[0]).toMatchObject({ variant: "control", units: 10, sessions: 25, conversionRate: 0.5, isControl: true });
+    expect(results[1].conversionRate).toBe(0.6);
+    expect(results[1].lift).toBeCloseTo(0.2);
+  });
+
+  it("coerces ClickHouse UInt64 strings to numbers", () => {
+    const [control] = buildExperimentResults(["control"], [
+      { variant: "control", units: "4", sessions: "6", exposures: "8", conversions: "1" } as never,
+    ]);
+
+    expect(control).toMatchObject({ units: 4, sessions: 6, exposures: 8, conversions: 1, conversionRate: 0.25 });
   });
 });

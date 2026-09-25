@@ -824,6 +824,9 @@
       if (Object.keys(featureFlagPayload).length > 0) {
         payload.feature_flags = featureFlagPayload;
       }
+      if (this.config.featureFlagsEnabled) {
+        payload.visitor_id = this.config.visitorId;
+      }
       return payload;
     }
     async sendTrackingData(payload) {

@@ -68,8 +68,8 @@ function VariantResultRow({
             {tone === "control" && <VariantTag tone="control">{t("Control")}</VariantTag>}
           </div>
           <div className="mt-1 text-xs tabular-nums text-neutral-500 dark:text-neutral-400">
-            {t("{sessions} sessions · {conversions} conv.", {
-              sessions: formatCompactNumber(result.sessions),
+            {t("{visitors} visitors · {conversions} conv.", {
+              visitors: formatCompactNumber(result.units),
               conversions: formatCompactNumber(result.conversions),
             })}
           </div>
@@ -161,6 +161,7 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
     data?.variants ||
     fallbackVariants.map(variant => ({
       variant,
+      units: 0,
       sessions: 0,
       exposures: 0,
       conversions: 0,
@@ -173,7 +174,7 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
   const leader = getLeadingResult(results);
   const leaderConfidence = leader && !leader.isControl ? getVariantConfidence(control, leader) : null;
   const maxRate = Math.max(...results.map(result => result.conversionRate), 0);
-  const totalSessions = data?.totalExposureSessions ?? results.reduce((sum, result) => sum + result.sessions, 0);
+  const totalUnits = data?.totalUnits ?? results.reduce((sum, result) => sum + result.units, 0);
   const totalConversions = data?.totalConversions ?? results.reduce((sum, result) => sum + result.conversions, 0);
   const measurement = data?.measurement ?? "exposure";
 
@@ -222,8 +223,8 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
           {verdict.label}
         </span>
         <span className="text-xs tabular-nums text-neutral-500 dark:text-neutral-400">
-          {t("{sessions} sessions · {conversions} conversions", {
-            sessions: formatCompactNumber(totalSessions),
+          {t("{visitors} visitors · {conversions} conversions", {
+            visitors: formatCompactNumber(totalUnits),
             conversions: formatCompactNumber(totalConversions),
           })}
         </span>

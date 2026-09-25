@@ -69,6 +69,7 @@ export type ExperimentUpdatePayload = Partial<ExperimentPayload>;
 
 export type ExperimentVariantResult = {
   variant: string;
+  units: number;
   sessions: number;
   exposures: number;
   conversions: number;
@@ -80,6 +81,7 @@ export type ExperimentVariantResult = {
 export type ExperimentResults = {
   experiment: Experiment;
   variants: ExperimentVariantResult[];
+  totalUnits: number;
   totalExposureSessions: number;
   totalConversions: number;
   hasGoal: boolean;

@@ -17,6 +17,10 @@ import {
   serializeExperiment,
 } from "./utils.js";
 
+// Visitors from the script's stable visitor id; events sent before it existed
+// (or from clients that omit it) fall back to one unit per session.
+export const EXPERIMENT_UNIT = "if(visitor_id != '', visitor_id, session_id)";
+
 type BuildExperimentResultQueriesParams = {
   query: FilterParams;
   siteId: number;
@@ -38,30 +42,32 @@ export function buildExperimentResultQueries({
   const escapedFlagKey = SqlString.escape(flagKey);
 
   // A session qualifies once, independently of which event carried the filter
-  // value. Goal, exposure, and assignment rows are then scoped to that cohort.
-  const goalSessionsCte = `
-      goal_sessions AS (
+  // value. Goal, exposure, and assignment rows are then scoped to that cohort,
+  // and grouped by analysis unit so a later-session conversion still counts.
+  const goalUnitsCte = `
+      goal_units AS (
         SELECT
-          session_id,
+          ${EXPERIMENT_UNIT} AS unit,
           max(timestamp) AS last_goal_at
         FROM events
         ${filteredSessionsJoin}
         WHERE site_id = ${escapedSiteId}
           AND (${goalCondition})
           ${timeStatement}
-        GROUP BY session_id
+        GROUP BY unit
       )`;
 
-  // The first observed exposure fixes the experiment arm for the session. A
-  // later flag refresh must not count one session in multiple variants.
+  // The first observed exposure fixes the experiment arm for the unit. A
+  // later flag refresh must not count one unit in multiple variants.
   const exposureQuery = `
       WITH
         ${filteredSessionsPrefix}
-        exposure_sessions AS (
+        exposure_units AS (
           SELECT
-            session_id,
+            ${EXPERIMENT_UNIT} AS unit,
             argMin(JSONExtractString(toString(props), 'value'), timestamp) AS variant,
             min(timestamp) AS exposed_at,
+            groupUniqArray(session_id) AS session_ids,
             count() AS exposures
           FROM events
           ${filteredSessionsJoin}
@@ -71,45 +77,48 @@ export function buildExperimentResultQueries({
             AND JSONExtractString(toString(props), 'key') = ${escapedFlagKey}
             AND JSONExtractString(toString(props), 'value') != ''
             ${timeStatement}
-          GROUP BY session_id
+          GROUP BY unit
         ),
-        ${goalSessionsCte}
+        ${goalUnitsCte}
       SELECT
         e.variant AS variant,
-        uniqExact(e.session_id) AS sessions,
+        uniqExact(e.unit) AS units,
+        uniqExactArray(e.session_ids) AS sessions,
         sum(e.exposures) AS exposures,
-        uniqExactIf(e.session_id, g.last_goal_at >= e.exposed_at) AS conversions
-      FROM exposure_sessions e
-      LEFT JOIN goal_sessions g ON g.session_id = e.session_id
+        uniqExactIf(e.unit, g.last_goal_at >= e.exposed_at) AS conversions
+      FROM exposure_units e
+      LEFT JOIN goal_units g ON g.unit = e.unit
       GROUP BY e.variant
       ORDER BY e.variant ASC
     `;
 
-  // Assignment fallback follows the same one-arm-per-session rule, using the
+  // Assignment fallback follows the same one-arm-per-unit rule, using the
   // first event that carried an assignment for the flag.
   const assignmentQuery = `
       WITH
         ${filteredSessionsPrefix}
-        assignment_sessions AS (
+        assignment_units AS (
           SELECT
-            session_id,
+            ${EXPERIMENT_UNIT} AS unit,
             argMin(feature_flags[${escapedFlagKey}], timestamp) AS variant,
-            min(timestamp) AS assigned_at
+            min(timestamp) AS assigned_at,
+            groupUniqArray(session_id) AS session_ids
           FROM events
           ${filteredSessionsJoin}
           WHERE site_id = ${escapedSiteId}
             AND feature_flags[${escapedFlagKey}] != ''
             ${timeStatement}
-          GROUP BY session_id
+          GROUP BY unit
         ),
-        ${goalSessionsCte}
+        ${goalUnitsCte}
       SELECT
         a.variant AS variant,
-        uniqExact(a.session_id) AS sessions,
-        uniqExact(a.session_id) AS exposures,
-        uniqExactIf(a.session_id, g.last_goal_at >= a.assigned_at) AS conversions
-      FROM assignment_sessions a
-      LEFT JOIN goal_sessions g ON g.session_id = a.session_id
+        uniqExact(a.unit) AS units,
+        uniqExactArray(a.session_ids) AS sessions,
+        uniqExact(a.unit) AS exposures,
+        uniqExactIf(a.unit, g.last_goal_at >= a.assigned_at) AS conversions
+      FROM assignment_units a
+      LEFT JOIN goal_units g ON g.unit = a.unit
       GROUP BY a.variant
       ORDER BY a.variant ASC
     `;
@@ -144,6 +153,7 @@ export async function getExperimentResults(
         data: {
           experiment: serializeExperiment(record),
           variants: buildExperimentResults(variants, []),
+          totalUnits: 0,
           totalExposureSessions: 0,
           totalConversions: 0,
           hasGoal: false,
@@ -167,11 +177,11 @@ export async function getExperimentResults(
     // for this key), count sessions that were assigned the variant via the
     // feature_flags map attached to every event. Looser, but avoids a confusing
     // empty result when the flag is clearly assigning traffic.
-    const hasExposures = rows.some(row => Number(row.sessions) > 0);
+    const hasExposures = rows.some(row => Number(row.units) > 0);
     if (!hasExposures) {
       const assignmentResult = await clickhouse.query({ query: assignmentQuery, format: "JSONEachRow" });
       const assignmentRows = await processResults<ExperimentResultRow>(assignmentResult);
-      if (assignmentRows.some(row => Number(row.sessions) > 0)) {
+      if (assignmentRows.some(row => Number(row.units) > 0)) {
         rows = assignmentRows;
         measurement = "assignment";
       }
@@ -183,6 +193,7 @@ export async function getExperimentResults(
       data: {
         experiment: serializeExperiment(record),
         variants: variantResults,
+        totalUnits: variantResults.reduce((sum, variant) => sum + variant.units, 0),
         totalExposureSessions: variantResults.reduce((sum, variant) => sum + variant.sessions, 0),
         totalConversions: variantResults.reduce((sum, variant) => sum + variant.conversions, 0),
         hasGoal: true,

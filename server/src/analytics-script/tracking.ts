@@ -191,6 +191,13 @@ export class Tracker {
       payload.feature_flags = featureFlagPayload;
     }
 
+    // Experiments count visitors, not sessions: the flag bucketing id lets a
+    // conversion in a later session reach the arm it was exposed in. Sites
+    // without flags never send it and stay cookieless.
+    if (this.config.featureFlagsEnabled) {
+      payload.visitor_id = this.config.visitorId;
+    }
+
     return payload;
   }
 

@@ -90,7 +90,7 @@ function effectiveSampleSize(result: ExperimentVariantResult): number {
     const derived = Math.round(result.conversions / result.conversionRate);
     if (Number.isFinite(derived) && derived >= result.conversions) return derived;
   }
-  return result.exposures;
+  return result.units;
 }
 
 export type VariantConfidence = {

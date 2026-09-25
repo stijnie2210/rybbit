@@ -130,18 +130,20 @@ export function buildExperimentResults(variants: string[], rows: ExperimentResul
 
   const controlVariant = getControlVariant(allVariants, rows);
   const controlRow = controlVariant ? resultMap.get(controlVariant) : undefined;
-  const controlRate = controlRow && controlRow.sessions > 0 ? controlRow.conversions / controlRow.sessions : null;
+  const controlRate = controlRow && controlRow.units > 0 ? controlRow.conversions / controlRow.units : null;
 
   return allVariants.map(variant => {
     const row = resultMap.get(variant);
-    const sessions = row?.sessions ?? 0;
-    const exposures = row?.exposures ?? 0;
-    const conversions = row?.conversions ?? 0;
-    const conversionRate = sessions > 0 ? conversions / sessions : 0;
+    const units = Number(row?.units ?? 0);
+    const sessions = Number(row?.sessions ?? 0);
+    const exposures = Number(row?.exposures ?? 0);
+    const conversions = Number(row?.conversions ?? 0);
+    const conversionRate = units > 0 ? conversions / units : 0;
     const lift = controlRate && controlRate > 0 ? (conversionRate - controlRate) / controlRate : null;
 
     return {
       variant,
+      units,
       sessions,
       exposures,
       conversions,

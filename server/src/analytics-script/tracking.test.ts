@@ -207,6 +207,15 @@ describe("Tracker", () => {
       expect(payload?.feature_flags).toEqual({ new_checkout: "true" });
       expect(tracker.getFeatureFlagPayload("new_checkout")).toEqual({ copy: "Try it now" });
     });
+
+    it("should send the visitor id only when feature flags are enabled", () => {
+      expect(tracker.createBasePayload()?.visitor_id).toBeUndefined();
+
+      config.featureFlagsEnabled = true;
+      tracker = new Tracker(config);
+
+      expect(tracker.createBasePayload()?.visitor_id).toBe("visitor-123");
+    });
   });
 
   describe("tracking methods", () => {

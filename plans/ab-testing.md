@@ -70,7 +70,21 @@ Done:
 - `pnpm typecheck` passes; existing experiment + feature-flag tests pass (56/56).
 - Dev databases: `dev/docker-compose.yml` (project `rybbit-dev`, ports 15432 / 18123 / 16379).
 
-Not yet done: the manual Phase 0 smoke test in the browser, then Phases 1–3.
+- Phase 0 smoke test (2026-09-25): the wizard (new flag + new event goal), start/pause/complete, flag evaluation, exposure + goal events, and the results panel all work end to end. With 12 distinct visitors, results matched ClickHouse exactly (control 7/5, variant_a 5/3), and every visitor kept its variant across reloads.
+
+Phase 0 findings:
+1. **Visitors sharing IP + normalised UA merge into one session and user.** Browser version tokens are stripped before hashing (`userIdService.generateUserId`). All 12 visitors from one IP became a single session covering both variants, and results attributed everything to the first-exposed variant (control 1/1, variant_a 0/0). That's realistic behind an office NAT or carrier CGNAT. It raises the priority of Phase 1 (`visitor_id` as the unit).
+2. **Pause and Complete don't touch the flag.** The flag stays enabled and keeps assigning. Results use the page date filter, so a completed experiment keeps collecting (12 → 15 sessions after Complete). Fold this into the Phase 3 experiment window. Also decide whether Complete should roll out the winner or disable the flag.
+3. **The wizard's flag key field eats separators while you type.** `slugify` runs on every keystroke and trims trailing `_`, so typing `smoke_exp` gives `smokeexp`. Only pasting a whole key works. Fix: slugify on blur/submit only, or keep trailing `_` while editing.
+4. **Minor: `exposures` counts events, not units.** It's 2 per visitor with a reload. The results panel shows sessions, so it's harmless for now.
+5. Not experiment bugs, but noise in the self-hosted dev console: hydration mismatch warnings, and a Stripe `IntegrationError` about an empty publishable key.
+
+Testing notes: headless Chrome gets blocked by `blockBots` (client signals), so turn it off on the test site. To simulate distinct visitors, give each browser context its own `x-forwarded-for`, injected via request interception (setting it as a page header triggers a failing CORS preflight).
+
+- Phase 1 (2026-09-25): the script sends `visitor_id` when flags are enabled, it's stored in `events.visitor_id`, and results group by `if(visitor_id != '', visitor_id, session_id)`. The response adds `units` / `totalUnits` (the denominator). `sessions` is now a distinct count per variant. The panel shows "visitors". Verified end to end: 8 visitors behind one IP + UA became 8 units (they had merged into 1 in Phase 0), and 4 visitors exposed in session 1 who converted in session 2 all counted. Results were variant_a 8/5 and control 4/3, both exactly as expected.
+- `src/lib/oauth.test.ts` fails 2 tests (invalid_grant, OTP_EXPIRED) on a clean tree too. It predates this work.
+
+Not yet done: Phases 2–3.
 
 ## Dev setup on a new machine
 1. Node >= 22.13 (24 recommended), `corepack enable`, `pnpm install`.
