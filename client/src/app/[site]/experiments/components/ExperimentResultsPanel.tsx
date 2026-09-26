@@ -1,7 +1,7 @@
 "use client";
 
 import type { VariantStats } from "@rybbit/shared";
-import { AlertTriangle, Info, Target, TrendingUp, Trophy } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, Rocket, Target, TrendingUp, Trophy } from "lucide-react";
 import { DateTime } from "luxon";
 import { useExtracted } from "next-intl";
 import { type ReactNode, useState } from "react";
@@ -15,8 +15,10 @@ import {
   formatPercent,
   getExperimentVerdict,
   getVariantKeys,
+  MIN_CONVERSIONS,
+  MIN_UNITS_PER_VARIANT,
 } from "../lib/experimentHelpers";
-import { ExperimentConversionChart } from "./ExperimentConversionChart";
+import { ExperimentConversionChart, hasTrend } from "./ExperimentConversionChart";
 
 const formatSignedPercent = (value: number) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
 
@@ -59,7 +61,8 @@ function LiftIntervalBar({ interval, lift, domain }: { interval: [number, number
   );
 }
 
-type VariantTone = "winner" | "leading" | "control" | "variant";
+// "rolledOut" marks a variant that was shipped without the results backing it.
+type VariantTone = "winner" | "leading" | "rolledOut" | "control" | "variant";
 
 function formatWindowInstant(value: string, timeZone: string) {
   return DateTime.fromSQL(value, { zone: "utc" }).setZone(timeZone).toFormat("MMM d, HH:mm");
@@ -116,7 +119,13 @@ function WindowSwitch({
 
 function VariantTag({ tone, children }: { tone: VariantTone; children: ReactNode }) {
   const icon =
-    tone === "winner" ? <Trophy className="h-3 w-3" /> : tone === "leading" ? <TrendingUp className="h-3 w-3" /> : null;
+    tone === "winner" ? (
+      <Trophy className="h-3 w-3" />
+    ) : tone === "leading" ? (
+      <TrendingUp className="h-3 w-3" />
+    ) : tone === "rolledOut" ? (
+      <Rocket className="h-3 w-3" />
+    ) : null;
 
   return (
     <span
@@ -124,7 +133,8 @@ function VariantTag({ tone, children }: { tone: VariantTone; children: ReactNode
         "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium",
         tone === "winner" && "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400",
         tone === "leading" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-        tone === "control" && "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
+        (tone === "control" || tone === "rolledOut") &&
+          "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
       )}
     >
       {icon}
@@ -140,6 +150,7 @@ function VariantResultRow({
   stats,
   liftDomain,
   controlRate,
+  showLift,
 }: {
   result: ExperimentVariantResult;
   tone: VariantTone;
@@ -147,6 +158,7 @@ function VariantResultRow({
   stats: VariantStats | null;
   liftDomain: number;
   controlRate: number;
+  showLift: boolean;
 }) {
   const t = useExtracted();
   const emphasized = tone === "winner" || tone === "leading";
@@ -164,9 +176,10 @@ function VariantResultRow({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="truncate font-mono text-sm text-neutral-900 dark:text-neutral-50">{result.variant}</span>
+            {result.isControl && <VariantTag tone="control">{t("Control")}</VariantTag>}
             {tone === "winner" && <VariantTag tone="winner">{t("Winner")}</VariantTag>}
-            {tone === "leading" && <VariantTag tone="leading">{t("Leading")}</VariantTag>}
-            {tone === "control" && <VariantTag tone="control">{t("Control")}</VariantTag>}
+            {tone === "leading" && <VariantTag tone="leading">{t("Winning")}</VariantTag>}
+            {tone === "rolledOut" && <VariantTag tone="rolledOut">{t("Rolled out")}</VariantTag>}
           </div>
           <div className="mt-1 text-xs tabular-nums text-neutral-500 dark:text-neutral-400">
             {t("{visitors} visitors · {conversions} conv.", {
@@ -181,7 +194,7 @@ function VariantResultRow({
           </div>
           {result.isControl ? (
             <div className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">{t("Baseline")}</div>
-          ) : (
+          ) : !showLift ? null : (
             <div
               className={cn(
                 "mt-1 text-xs font-medium tabular-nums",
@@ -207,7 +220,7 @@ function VariantResultRow({
         <div
           className={cn(
             "h-full rounded-full transition-all",
-            tone === "control"
+            result.isControl
               ? "bg-neutral-400 dark:bg-neutral-600"
               : emphasized
                 ? "bg-accent-500"
@@ -221,7 +234,7 @@ function VariantResultRow({
         <div className="mt-2.5 flex items-center gap-3 text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400">
           <span className="w-8 shrink-0">{t("Lift")}</span>
           <LiftIntervalBar interval={stats.liftInterval} lift={stats.lift} domain={liftDomain} />
-          <span className="w-28 shrink-0 text-right">
+          <span className="w-32 shrink-0 whitespace-nowrap text-right">
             {formatSignedPercent(stats.liftInterval[0])} … {formatSignedPercent(stats.liftInterval[1])}
           </span>
           <span className="w-20 shrink-0 text-right">
@@ -289,7 +302,8 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
       isControl: variant === "control",
     }));
 
-  const { control, statsByVariant, comparisons, weights, srm, leader } = getExperimentVerdict(experiment, results);
+  const { control, enoughData, statsByVariant, comparisons, weights, srm, leader, remainingUnits } =
+    getExperimentVerdict(experiment, results);
 
   const liftDomain = Math.min(
     1,
@@ -306,34 +320,66 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
   const totalConversions = data?.totalConversions ?? results.reduce((sum, result) => sum + result.conversions, 0);
   const measurement = data?.measurement ?? "exposure";
 
-  const officialWinner = experiment.winningVariant || null;
+  // The variant a completed experiment shipped. It only counts as the winner
+  // when the results picked it too.
+  const rolledOut = experiment.winningVariant || null;
+  const confirmedWinner = !!rolledOut && leader?.variant === rolledOut;
 
   const toneFor = (result: ExperimentVariantResult): VariantTone => {
-    if (officialWinner && result.variant === officialWinner) return "winner";
-    if (!officialWinner && leader && result.variant === leader.variant) return "leading";
+    if (rolledOut && result.variant === rolledOut) return confirmedWinner ? "winner" : "rolledOut";
+    if (!rolledOut && leader && result.variant === leader.variant) return "leading";
     if (result.isControl) return "control";
     return "variant";
   };
 
-  const verdict: { tone: "win" | "neutral"; icon: ReactNode; label: string } = officialWinner
-    ? {
-        tone: "win",
-        icon: <Trophy className="h-3.5 w-3.5" />,
-        label: t("Winner: {variant}", { variant: officialWinner }),
-      }
-    : totalConversions === 0
-      ? { tone: "neutral", icon: null, label: t("No conversions yet") }
+  const verdict: { tone: "win" | "neutral"; icon: ReactNode; label: string; detail?: string } = rolledOut
+    ? confirmedWinner
+      ? { tone: "win", icon: <Trophy className="h-3.5 w-3.5" />, label: t("Winner: {variant}", { variant: rolledOut }) }
+      : {
+          tone: "neutral",
+          icon: <Rocket className="h-3.5 w-3.5" />,
+          label: t("Rolled out: {variant}", { variant: rolledOut }),
+          detail: leader
+            ? t("{variant} was ahead when the experiment ended.", { variant: leader.variant })
+            : enoughData
+              ? t("The results didn't show a clear winner.")
+              : t("There wasn't enough data to pick a winner."),
+        }
+    : !enoughData
+      ? {
+          tone: "neutral",
+          icon: null,
+          label: t("Not enough data yet"),
+          detail: t("Results appear once every variant has {visitors} visitors and there are {conversions} conversions.", {
+            visitors: String(MIN_UNITS_PER_VARIANT),
+            conversions: String(MIN_CONVERSIONS),
+          }),
+        }
       : leader
         ? {
             tone: "win",
-            icon: <TrendingUp className="h-3.5 w-3.5" />,
-            label: t("{variant} leading", { variant: leader.variant }),
+            icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+            label: t("{variant} wins", { variant: leader.variant }),
+            detail:
+              experiment.status === "completed"
+                ? undefined
+                : leader.isControl
+                  ? t("Every variant does worse than control. Complete the experiment to keep control.")
+                  : t("Ready to call. Complete the experiment to roll it out."),
           }
-        : {
-            tone: "neutral",
-            icon: null,
-            label: experiment.status === "completed" ? t("No clear winner") : t("Gathering data"),
-          };
+        : experiment.status === "completed"
+          ? { tone: "neutral", icon: null, label: t("No clear winner") }
+          : {
+              tone: "neutral",
+              icon: null,
+              label: t("Gathering data"),
+              detail:
+                remainingUnits !== null
+                  ? t("If the current difference holds, about {visitors} more visitors are needed to call it.", {
+                      visitors: formatCompactNumber(Number(remainingUnits.toPrecision(2))),
+                    })
+                  : t("No clear difference between the variants yet."),
+            };
 
   return (
     <div className="grid gap-2.5">
@@ -379,6 +425,7 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
           })}
         </span>
       </div>
+      {verdict.detail && <p className="-mt-1 text-xs text-neutral-500 dark:text-neutral-400">{verdict.detail}</p>}
 
       <div className="grid gap-2">
         {results.map(result => {
@@ -395,12 +442,13 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
               stats={statsByVariant.get(result.variant) ?? null}
               liftDomain={liftDomain}
               controlRate={controlRate}
+              showLift={enoughData}
             />
           );
         })}
       </div>
 
-      {timeseries && totalUnits > 0 && (
+      {enoughData && timeseries && hasTrend(timeseries) && (
         <div className="rounded-md border border-neutral-100 p-3 dark:border-neutral-850">
           <ExperimentConversionChart
             data={timeseries}

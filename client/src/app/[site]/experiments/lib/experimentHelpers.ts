@@ -1,4 +1,4 @@
-import { compareToControl, sampleRatioMismatch, type VariantStats } from "@rybbit/shared";
+import { compareToControl, projectedScaleToDecide, sampleRatioMismatch, type VariantStats } from "@rybbit/shared";
 import { DateTime } from "luxon";
 
 import type { Experiment, ExperimentStatus, ExperimentVariantResult } from "@/api/analytics/endpoints";
@@ -101,15 +101,36 @@ export function getVariantWeights(experiment: Experiment): Record<string, number
   return sameSplit ? first : null;
 }
 
+// Below these the posteriors are mostly prior, and chance-to-beat-control and
+// lift ranges swing too much to be worth showing.
+export const MIN_UNITS_PER_VARIANT = 100;
+export const MIN_CONVERSIONS = 10;
+
+export function hasEnoughData(results: ExperimentVariantResult[]) {
+  return (
+    results.length > 1 &&
+    results.every(result => result.units >= MIN_UNITS_PER_VARIANT) &&
+    results.reduce((sum, result) => sum + result.conversions, 0) >= MIN_CONVERSIONS
+  );
+}
+
 /**
  * Everything the results panel and the completion dialog judge an experiment
  * by: per-variant stats against control, the split check, and the arm that is
  * ahead (a winning variant, or control when every variant loses). A broken
- * split invalidates the comparison, so then nothing is ahead.
+ * split invalidates the comparison, so then nothing is ahead. Without enough
+ * data there are no stats and nothing is ahead.
+ *
+ * While undecided, `remainingUnits` estimates how many more units (across all
+ * variants) the variant closest to a decision needs if every arm keeps its
+ * current rate; null when no variant would decide within a reasonable sample.
  */
 export function getExperimentVerdict(experiment: Experiment, results: ExperimentVariantResult[]) {
   const control = getControlResult(results);
-  const statsByVariant = new Map(results.map(result => [result.variant, getVariantStats(control, result)]));
+  const enoughData = hasEnoughData(results);
+  const statsByVariant = new Map(
+    results.map(result => [result.variant, enoughData ? getVariantStats(control, result) : null])
+  );
   const comparisons = results.flatMap(result => {
     const stats = statsByVariant.get(result.variant);
     return stats ? [{ result, stats }] : [];
@@ -129,5 +150,10 @@ export function getExperimentVerdict(experiment: Experiment, results: Experiment
     : null;
   const leader = srm?.mismatch ? undefined : (winning?.result ?? (controlWinning ? control : undefined));
 
-  return { control, statsByVariant, comparisons, weights, srm, leader };
+  const totalUnits = results.reduce((sum, result) => sum + result.units, 0);
+  const scales = leader || !control ? [] : comparisons.map(({ result }) => projectedScaleToDecide(control, result));
+  const nearestScale = Math.min(...scales.filter((scale): scale is number => scale !== null));
+  const remainingUnits = Number.isFinite(nearestScale) ? Math.ceil(totalUnits * (nearestScale - 1)) : null;
+
+  return { control, enoughData, statsByVariant, comparisons, weights, srm, leader, remainingUnits };
 }

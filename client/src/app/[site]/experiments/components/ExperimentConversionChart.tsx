@@ -22,6 +22,14 @@ const VARIANT_COLORS = [
 type SeriesDatum = { x: string; y: number; units: number; conversions: number };
 type Series = LineSeries & { id: string; color: string; isControl: boolean; data: SeriesDatum[] };
 
+// A trend needs at least two days with visitors; one day is just the totals again.
+export function hasTrend(data: ExperimentTimeseries) {
+  const days = new Set(
+    data.variants.flatMap(({ points }) => points.filter(point => point.units > 0).map(point => point.date))
+  );
+  return days.size >= 2;
+}
+
 export function getVariantColor(variant: string, variants: string[], controlVariant: string | undefined) {
   if (variant === controlVariant) return CONTROL_COLOR;
   const index = variants.filter(key => key !== controlVariant).indexOf(variant);

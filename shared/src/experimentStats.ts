@@ -162,6 +162,46 @@ export function compareToControl(control: ArmCounts, variant: ArmCounts): Varian
   };
 }
 
+/** Beyond this multiple of the current sample a difference is too small to call soon. */
+export const MAX_PROJECTION_SCALE = 100;
+
+function decides(control: ArmCounts, variant: ArmCounts, scale: number): boolean {
+  const scaled = ({ units, conversions }: ArmCounts) => ({
+    units: Math.round(units * scale),
+    conversions: Math.round(conversions * scale),
+  });
+  return compareToControl(scaled(control), scaled(variant))?.decision !== "inconclusive";
+}
+
+/**
+ * How many times the current sample both arms need before compareToControl
+ * reaches a decision, if each arm keeps converting at its observed rate. Null
+ * when it already has, or when that would take more than maxScale times the
+ * current sample (the difference is too small to call soon).
+ */
+export function projectedScaleToDecide(
+  control: ArmCounts,
+  variant: ArmCounts,
+  maxScale = MAX_PROJECTION_SCALE
+): number | null {
+  if (control.units <= 0 || variant.units <= 0 || decides(control, variant, 1)) return null;
+
+  let low = 1;
+  let high = 2;
+  while (!decides(control, variant, high)) {
+    if (high >= maxScale) return null;
+    low = high;
+    high = Math.min(high * 2, maxScale);
+  }
+  // The decision flips once as the sample grows, so bisect to within 1%.
+  while (high / low > 1.01) {
+    const middle = Math.sqrt(low * high);
+    if (decides(control, variant, middle)) high = middle;
+    else low = middle;
+  }
+  return high;
+}
+
 // Regularized upper incomplete gamma Q(a, x), series below a + 1 and a
 // continued fraction above it (Numerical Recipes gammq).
 function upperIncompleteGamma(a: number, x: number): number {

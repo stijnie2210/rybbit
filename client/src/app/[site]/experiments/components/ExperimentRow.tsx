@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
-import { Flag, MoreHorizontal, Pause, Pencil, Play, Square, Target, Trash2, Trophy } from "lucide-react";
+import { Flag, MoreHorizontal, Pause, Pencil, Play, Rocket, Square, Target, Trash2 } from "lucide-react";
 import { useExtracted } from "next-intl";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -98,8 +98,12 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
             <h3 className="truncate text-base font-medium text-neutral-900 dark:text-neutral-50">{experiment.name}</h3>
             <StatusBadge status={experiment.status} />
             {experiment.winningVariant && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                <Trophy className="h-3 w-3" />
+              // What shipped, not a verdict: the results panel says whether it won.
+              <span
+                title={t("Rolled out {variant}", { variant: experiment.winningVariant })}
+                className="inline-flex items-center gap-1 rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+              >
+                <Rocket className="h-3 w-3" />
                 <span className="font-mono">{experiment.winningVariant}</span>
               </span>
             )}

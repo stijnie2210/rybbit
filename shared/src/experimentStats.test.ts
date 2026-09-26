@@ -4,6 +4,8 @@ import {
   chiSquarePValue,
   compareToControl,
   expectedLoss,
+  MAX_PROJECTION_SCALE,
+  projectedScaleToDecide,
   probabilityBBeatsA,
   relativeLift,
   RISK_THRESHOLD,
@@ -136,5 +138,33 @@ describe("sampleRatioMismatch", () => {
   it("returns null when there is nothing to test", () => {
     expect(sampleRatioMismatch([0, 0], [50, 50])).toBeNull();
     expect(sampleRatioMismatch([10], [100])).toBeNull();
+  });
+});
+
+describe("projectedScaleToDecide", () => {
+  it("projects the sample at which a real difference becomes a decision", () => {
+    const control = { units: 250, conversions: 25 };
+    const variant = { units: 250, conversions: 35 };
+    const scale = projectedScaleToDecide(control, variant)!;
+    expect(scale).toBeGreaterThan(1);
+    const at = (arm: typeof control, factor: number) => ({
+      units: Math.round(arm.units * factor),
+      conversions: Math.round(arm.conversions * factor),
+    });
+    expect(compareToControl(at(control, scale), at(variant, scale))!.decision).toBe("winning");
+    expect(compareToControl(at(control, scale / 1.05), at(variant, scale / 1.05))!.decision).toBe("inconclusive");
+  });
+
+  it("returns null once the experiment has already decided", () => {
+    expect(projectedScaleToDecide({ units: 10000, conversions: 1000 }, { units: 10000, conversions: 1150 })).toBeNull();
+  });
+
+  it("returns null when there is no difference to call", () => {
+    expect(projectedScaleToDecide({ units: 500, conversions: 50 }, { units: 500, conversions: 50 })).toBeNull();
+  });
+
+  it("gives up beyond the maximum scale", () => {
+    expect(projectedScaleToDecide({ units: 1000, conversions: 100 }, { units: 1000, conversions: 101 })).toBeNull();
+    expect(MAX_PROJECTION_SCALE).toBe(100);
   });
 });
