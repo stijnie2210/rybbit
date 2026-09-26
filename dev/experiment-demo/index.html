@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Acme Pricing</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #0b0b0c;
+        color: #ededed;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      main {
+        max-width: 28rem;
+        padding: 2rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: 2rem;
+        margin: 0 0 0.75rem;
+      }
+      p {
+        color: #a1a1a1;
+        margin: 0 0 1.5rem;
+      }
+      button {
+        font: inherit;
+        padding: 0.75rem 1.5rem;
+        border: 0;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        background: #3f3f46;
+        color: #fff;
+      }
+      [data-variant="variant_a"] button {
+        background: #10b981;
+      }
+      #variant {
+        margin-top: 2rem;
+        font: 12px ui-monospace, monospace;
+        color: #71717a;
+      }
+    </style>
+  </head>
+  <body>
+    <main data-variant="pending">
+      <h1 id="headline">Simple pricing for growing teams</h1>
+      <p>Everything you need to understand your visitors. No credit card required.</p>
+      <button id="cta" type="button">Start free trial</button>
+      <div id="variant">variant: pending</div>
+    </main>
+
+    <!-- The install tag from Site settings. Host, site id, flag key and goal come from serve.mjs. -->
+    <script src="__RYBBIT_HOST__/api/script.js?siteId=__SITE_ID__" defer></script>
+
+    <!--
+      The wizard's snippets as generated, with the two experiences filled in.
+      type="module" makes this run after the deferred install tag; a plain
+      inline script would run first, before window.rybbit exists.
+    -->
+    <script type="module">
+      window.rybbit.onReady(rybbit => {
+        const variant = rybbit.flag("__FLAG_KEY__", "control");
+
+        if (variant === "variant_a") {
+          document.getElementById("headline").textContent = "Know your visitors in five minutes";
+          document.getElementById("cta").textContent = "Get started free";
+        }
+        document.querySelector("main").dataset.variant = variant;
+        document.getElementById("variant").textContent = `variant: ${variant}`;
+      });
+
+      document.getElementById("cta").addEventListener("click", () => {
+        window.rybbit.onReady(rybbit => {
+          rybbit.event("__GOAL_EVENT__");
+        });
+      });
+    </script>
+  </body>
+</html>
