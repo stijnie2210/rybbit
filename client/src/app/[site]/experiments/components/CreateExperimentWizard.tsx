@@ -570,7 +570,8 @@ export function CreateExperimentWizard({
         const createdFlag = await createFeatureFlagMutation.mutateAsync({
           key: form.flagKey.trim(),
           description: form.flagDescription.trim() || `Assignment flag for ${form.name.trim()}`,
-          enabled: true,
+          // The experiment starts as a draft; starting it switches the flag on.
+          enabled: false,
           runtime: "client",
           flagType: "multivariate",
           payload: null,
@@ -658,7 +659,8 @@ export function CreateExperimentWizard({
         const createdFlag = await createFeatureFlagMutation.mutateAsync({
           key: form.flagKey.trim(),
           description: form.flagDescription.trim() || `Assignment flag for ${form.name.trim()}`,
-          enabled: true,
+          // Only serve variants while the experiment runs; Start and Resume switch it on.
+          enabled: experiment.status === "running",
           runtime: "client",
           flagType: "multivariate",
           payload: null,

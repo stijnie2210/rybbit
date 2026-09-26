@@ -52,9 +52,9 @@ function LinesLayer({ series, lineGenerator }: LineCustomSvgLayerProps<Series>) 
 const LABEL_GAP = 13;
 
 // Direct labels at each line's end, in text ink with a colored tick for
-// identity, nudged apart when lines end close together. A one-day line has no
-// segment to draw, so it gets an end dot.
-function EndLabelsLayer({ series }: LineCustomSvgLayerProps<Series>) {
+// identity, nudged apart when lines end close together and kept inside the
+// plot. A one-day line has no segment to draw, so it gets an end dot.
+function EndLabelsLayer({ series, innerHeight }: LineCustomSvgLayerProps<Series>) {
   const ends = series
     .map(line => ({ line, last: line.data[line.data.length - 1] }))
     .filter(end => end.last)
@@ -66,6 +66,12 @@ function EndLabelsLayer({ series }: LineCustomSvgLayerProps<Series>) {
     previousY = labelY;
     return { ...end, labelY };
   });
+  // Labels pushed below the plot move back up, pushing their neighbours along.
+  let nextY = innerHeight - LABEL_GAP / 2;
+  for (let index = placed.length - 1; index >= 0; index--) {
+    placed[index].labelY = Math.min(placed[index].labelY, nextY);
+    nextY = placed[index].labelY - LABEL_GAP;
+  }
 
   return (
     <g>
@@ -121,6 +127,8 @@ export function ExperimentConversionChart({
   if (days.length === 0 || series.every(line => line.data.length === 0)) return null;
 
   const maxY = Math.max(1, ...series.flatMap(line => line.data.map(point => Number(point.y)))) * 1.15;
+  // Low rates get sub-percent ticks, which whole-percent labels would repeat.
+  const yDecimals = maxY < 5 ? 1 : 0;
   const tickEvery = Math.max(1, Math.ceil(days.length / 6));
   const labelWidth = Math.max(...series.map(line => String(line.id).length)) * 7 + 24;
 
@@ -164,7 +172,7 @@ export function ExperimentConversionChart({
             tickValues: days.filter((_, index) => index % tickEvery === 0),
             format: value => DateTime.fromISO(String(value)).toFormat("MMM d"),
           }}
-          axisLeft={{ tickSize: 0, tickPadding: 8, tickValues: 4, format: value => `${Number(value).toFixed(0)}%` }}
+          axisLeft={{ tickSize: 0, tickPadding: 8, tickValues: 4, format: value => `${Number(value).toFixed(yDecimals)}%` }}
           gridYValues={4}
           enableGridX={false}
           pointSize={0}
