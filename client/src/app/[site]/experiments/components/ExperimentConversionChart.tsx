@@ -9,7 +9,6 @@ import type { ExperimentTimeseries } from "@/api/analytics/endpoints";
 import { ChartTooltip } from "@/components/charts/ChartTooltip";
 import { useNivoTheme } from "@/lib/nivo";
 
-// Control is gray and dashed; variants keep a color by position in the flag.
 const CONTROL_COLOR = "hsl(var(--neutral-500))";
 const VARIANT_COLORS = [
   "hsl(var(--indigo-500))",
@@ -21,7 +20,6 @@ const VARIANT_COLORS = [
 type SeriesDatum = { x: Date; y: number; units: number; conversions: number };
 type Series = LineSeries & { id: string; color: string; isControl: boolean; data: SeriesDatum[] };
 
-// A trend needs at least two days with visitors; one day is just the totals again.
 export function hasTrend(data: ExperimentTimeseries) {
   const days = new Set(
     data.variants.flatMap(({ points }) => points.filter(point => point.units > 0).map(point => point.date))
@@ -29,7 +27,6 @@ export function hasTrend(data: ExperimentTimeseries) {
   return days.size >= 2;
 }
 
-// Local midnight, so a day lands on its own tick whatever the viewer's zone.
 const toDate = (day: string) => DateTime.fromISO(day).toJSDate();
 
 export function getVariantColor(variant: string, variants: string[], controlVariant: string | undefined) {
@@ -38,8 +35,6 @@ export function getVariantColor(variant: string, variants: string[], controlVari
   return VARIANT_COLORS[Math.max(index, 0) % VARIANT_COLORS.length];
 }
 
-// Lines drawn by hand so the control reference can be dashed: identity is then
-// carried by stroke style as well as hue.
 function LinesLayer({ series, lineGenerator }: LineCustomSvgLayerProps<Series>) {
   return (
     <g>
@@ -61,8 +56,6 @@ function LinesLayer({ series, lineGenerator }: LineCustomSvgLayerProps<Series>) 
 
 const LABEL_GAP = 13;
 
-// Labels at each line's end, nudged apart so they don't overlap. A one-day
-// line has no segment to draw, so it gets a dot.
 function EndLabelsLayer({ series, innerHeight }: LineCustomSvgLayerProps<Series>) {
   const ends = series
     .map(line => ({ line, last: line.data[line.data.length - 1] }))
@@ -75,7 +68,6 @@ function EndLabelsLayer({ series, innerHeight }: LineCustomSvgLayerProps<Series>
     previousY = labelY;
     return { ...end, labelY };
   });
-  // Labels pushed below the plot move back up, pushing their neighbours along.
   let nextY = innerHeight - LABEL_GAP / 2;
   for (let index = placed.length - 1; index >= 0; index--) {
     placed[index].labelY = Math.min(placed[index].labelY, nextY);
@@ -119,7 +111,6 @@ export function ExperimentConversionChart({
         id: variant,
         color: getVariantColor(variant, variants, controlVariant),
         isControl: variant === controlVariant,
-        // Days before the arm's first unit have no rate to plot.
         data: points
           .filter(point => point.units > 0)
           .map(point => ({
@@ -136,7 +127,6 @@ export function ExperimentConversionChart({
   if (days.length === 0 || series.every(line => line.data.length === 0)) return null;
 
   const maxY = Math.max(1, ...series.flatMap(line => line.data.map(point => Number(point.y)))) * 1.15;
-  // Low rates get sub-percent ticks, which whole-percent labels would repeat.
   const yDecimals = maxY < 5 ? 1 : 0;
   const tickEvery = Math.max(1, Math.ceil(days.length / 6));
   const labelWidth = Math.max(...series.map(line => String(line.id).length)) * 7 + 24;

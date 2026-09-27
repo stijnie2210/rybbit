@@ -98,7 +98,6 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
             <h3 className="truncate text-base font-medium text-neutral-900 dark:text-neutral-50">{experiment.name}</h3>
             <StatusBadge status={experiment.status} />
             {experiment.winningVariant && (
-              // What shipped, not a verdict: the results panel says whether it won.
               <span
                 title={t("Rolled out {variant}", { variant: experiment.winningVariant })}
                 className="inline-flex items-center gap-1 rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"

@@ -44,9 +44,6 @@ export class Tracker {
     }
   }
 
-  // A multivariate flag that assigned no variant (disabled, outside its
-  // rollout, or not targeted) evaluates to `false`. That is not an arm, so it
-  // must not read as one: callers get their fallback and nothing is recorded.
   private isUnassignedVariant(assignment: FeatureFlagAssignment): boolean {
     return assignment.flagType === "multivariate" && typeof assignment.value !== "string";
   }
@@ -200,9 +197,6 @@ export class Tracker {
       payload.feature_flags = featureFlagPayload;
     }
 
-    // Experiments count visitors, not sessions: the flag bucketing id lets a
-    // conversion in a later session reach the arm it was exposed in. Sites
-    // without flags never send it and stay cookieless.
     if (this.config.featureFlagsEnabled) {
       payload.visitor_id = this.config.visitorId;
     }

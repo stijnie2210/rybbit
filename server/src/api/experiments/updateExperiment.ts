@@ -65,7 +65,6 @@ export async function updateExperiment(
       Object.assign(updateData, timestampsForStatus(body.status, existing));
     }
 
-    // Resuming is safe: bucketing is deterministic, so visitors get their old variant back.
     const isCompleting = body.status === "completed" && existing.status !== "completed";
 
     let flag: typeof featureFlags.$inferSelect | undefined;

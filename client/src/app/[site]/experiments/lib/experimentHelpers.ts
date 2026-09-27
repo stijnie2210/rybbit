@@ -82,8 +82,6 @@ export function getVariantStats(
 
 type VariantSplit = { key: string; rolloutPercentage: number }[];
 
-// The split each condition set serves. Like the flag evaluator, a set without
-// its own variants serves the flag's top-level variants.
 function getVariantSplits(experiment: Experiment): VariantSplit[] {
   const flagVariants = experiment.featureFlag.variants || [];
   const conditionSets = experiment.featureFlag.conditionSets || [];
@@ -94,8 +92,6 @@ function getVariantSplits(experiment: Experiment): VariantSplit[] {
   return splits.filter(split => split.length > 0);
 }
 
-// The configured split per variant, or null when condition sets split traffic
-// differently: then no single expected ratio exists to test against.
 export function getVariantWeights(experiment: Experiment): Record<string, number> | null {
   const splits = getVariantSplits(experiment);
   if (splits.length === 0) return null;
@@ -111,8 +107,6 @@ export function getVariantWeights(experiment: Experiment): Record<string, number
   return sameSplit ? first : null;
 }
 
-// Variants that currently get traffic in at least one condition set. An arm
-// turned down to 0% stops collecting units, so it can't hold back the results.
 export function getServedVariants(experiment: Experiment): Set<string> {
   return new Set(
     getVariantSplits(experiment).flatMap(split =>
@@ -121,8 +115,6 @@ export function getServedVariants(experiment: Experiment): Set<string> {
   );
 }
 
-// Below these the posteriors are mostly prior, and chance-to-beat-control and
-// lift ranges swing too much to be worth showing.
 export const MIN_UNITS_PER_VARIANT = 100;
 export const MIN_CONVERSIONS = 10;
 
@@ -135,13 +127,8 @@ export function hasEnoughData(results: ExperimentVariantResult[], servedVariants
   );
 }
 
-// `leader` is a winning variant, or control when every variant loses; nothing
-// leads on a broken split or without enough data. `remainingUnits` estimates
-// the extra units needed for a decision at current rates.
 export function getExperimentVerdict(experiment: Experiment, results: ExperimentVariantResult[]) {
   const control = getControlResult(results);
-  // Completing rolls the winner out and turns every other arm to 0%, so a
-  // finished experiment is judged on all of its arms.
   const enoughData = hasEnoughData(
     results,
     experiment.status === "completed" ? undefined : getServedVariants(experiment)

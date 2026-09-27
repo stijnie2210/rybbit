@@ -17,12 +17,8 @@ import {
   serializeExperiment,
 } from "./utils.js";
 
-// Visitors from the script's stable visitor id; events sent before it existed
-// (or from clients that omit it) fall back to one unit per session.
 export const EXPERIMENT_UNIT = "if(visitor_id != '', visitor_id, session_id)";
 
-// A multivariate flag that assigned no variant (disabled, outside rollout, not
-// targeted) evaluates to false; older scripts still record that as a value.
 const UNASSIGNED_VALUES = "'', 'false'";
 
 export type ExperimentResultsQuery = FilterParams<{ window?: "experiment" | "range" }>;
@@ -31,19 +27,12 @@ export type ExperimentWindow = { mode: "experiment" | "range"; start: string | n
 
 type ExperimentDates = { startedAt: string | null; endedAt: string | null };
 
-// ClickHouse-ready "YYYY-MM-DD HH:MM:SS" (UTC); `roundUp` keeps a bound's
-// fractional second inside the window.
 function toWindowInstant(value: string | Date, roundUp = false): string {
   const date = typeof value === "string" ? new Date(`${value.replace(" ", "T")}Z`) : value;
   const ms = roundUp ? Math.ceil(date.getTime() / 1000) * 1000 : Math.floor(date.getTime() / 1000) * 1000;
   return new Date(ms).toISOString().slice(0, 19).replace("T", " ");
 }
 
-/**
- * A started experiment is measured over its own run, [startedAt, endedAt ??
- * now], so a completed experiment stops collecting and a date filter cannot
- * cut its first days off. `window=range` opts back into the page date filter.
- */
 export function resolveExperimentWindow(
   query: ExperimentResultsQuery,
   experiment: ExperimentDates,
@@ -57,7 +46,6 @@ export function resolveExperimentWindow(
   }
 
   const start = toWindowInstant(experiment.startedAt);
-  // +1s so the live window's upper bound (exclusive) includes the current second.
   const end = experiment.endedAt
     ? toWindowInstant(experiment.endedAt, true)
     : toWindowInstant(new Date(now.getTime() + 1000), true);
@@ -97,9 +85,6 @@ export function buildExperimentResultQueries({
   const escapedFlagKey = SqlString.escape(flagKey);
   const timeZone = SqlString.escape(query.time_zone || "UTC");
 
-  // One row per analysis unit with its arm. The first observed exposure (or,
-  // for the assignment fallback, the first event carrying the flag) fixes the
-  // arm: a later flag refresh must not count one unit in multiple variants.
   const unitsCte = (measurement: "exposure" | "assignment") =>
     measurement === "exposure"
       ? `
@@ -136,9 +121,6 @@ export function buildExperimentResultQueries({
           GROUP BY unit
         )`;
 
-  // A session qualifies once, independently of which event carried the filter
-  // value. Goal rows are then scoped to that cohort and keyed by unit, so a
-  // conversion in a later session still reaches the unit's arm.
   const goalEventsCte = `
         goal_events AS (
           SELECT
@@ -171,8 +153,6 @@ export function buildExperimentResultQueries({
       ORDER BY u.variant ASC
     `;
 
-  // Daily new units and new conversions per arm; the handler accumulates them.
-  // A unit converts on the day of its first goal at or after its exposure.
   const timeseriesQuery = (measurement: "exposure" | "assignment") => `
       WITH
         ${filteredSessionsPrefix}

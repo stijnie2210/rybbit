@@ -1,9 +1,3 @@
-// Bayesian A/B statistics for conversion experiments.
-//
-// Each arm's conversion rate gets a Beta(1, 1) prior, so after `conversions`
-// out of `units` its posterior is Beta(1 + conversions, 1 + units - conversions).
-// Every variant is compared against control; nothing here needs a server.
-
 export type BetaPosterior = { alpha: number; beta: number };
 
 export type ArmCounts = { units: number; conversions: number };
@@ -11,26 +5,17 @@ export type ArmCounts = { units: number; conversions: number };
 export type ExperimentDecision = "winning" | "losing" | "inconclusive";
 
 export type VariantStats = {
-  /** P(variant rate > control rate) under the posteriors. */
   chanceToBeatControl: number;
-  /** Posterior-mean relative lift, (variant / control) - 1. */
   lift: number;
-  /** 95% credible interval of the relative lift. */
   liftInterval: [number, number];
-  /** Expected loss in conversion rate (absolute) of shipping the variant. */
   riskVariant: number;
-  /** Expected loss in conversion rate (absolute) of keeping control. */
   riskControl: number;
   decision: ExperimentDecision;
 };
 
-/** A variant wins once it very likely beats control ... */
 export const WIN_PROBABILITY = 0.95;
-/** ... and shipping it risks less than this fraction of the control rate. */
 export const RISK_THRESHOLD = 0.0025;
 
-// Above this many conversions the exact sum gets slow and the Beta posteriors
-// are close enough to normal that the approximation is indistinguishable.
 const EXACT_SUM_LIMIT = 5000;
 const Z_95 = 1.959963984540054;
 
@@ -49,7 +34,6 @@ function betaVariance({ alpha, beta }: BetaPosterior): number {
   return (alpha * beta) / (total * total * (total + 1));
 }
 
-// Lanczos approximation (g = 7, n = 9), accurate to ~15 significant digits.
 const LANCZOS = [
   0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
   12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
@@ -68,7 +52,6 @@ function logBeta(a: number, b: number): number {
   return logGamma(a) + logGamma(b) - logGamma(a + b);
 }
 
-// Standard normal CDF via the Abramowitz & Stegun 7.1.26 erf, |error| < 1.5e-7.
 export function normalCdf(z: number): number {
   const x = Math.abs(z) / Math.SQRT2;
   const t = 1 / (1 + 0.3275911 * x);
@@ -81,8 +64,6 @@ function normalPdf(z: number): number {
   return Math.exp(-(z * z) / 2) / Math.sqrt(2 * Math.PI);
 }
 
-// Evan Miller's closed form for P(pB > pA), exact for integer alpha_B:
-// sum_{i=0}^{alpha_B - 1} B(alpha_A + i, beta_A + beta_B) / ((beta_B + i) B(1 + i, beta_B) B(alpha_A, beta_A)).
 function exactProbabilityBBeatsA(a: BetaPosterior, b: BetaPosterior): number {
   let total = 0;
   const logBetaA = logBeta(a.alpha, a.beta);
@@ -92,10 +73,7 @@ function exactProbabilityBBeatsA(a: BetaPosterior, b: BetaPosterior): number {
   return Math.min(1, Math.max(0, total));
 }
 
-/** P(pB > pA) for two Beta posteriors. */
 export function probabilityBBeatsA(a: BetaPosterior, b: BetaPosterior): number {
-  // The sum runs alpha_B terms; P(B > A) = 1 - P(A > B) lets it run over the
-  // smaller of the two.
   const smallerAlpha = Math.min(a.alpha, b.alpha);
   if (Number.isInteger(a.alpha) && Number.isInteger(b.alpha) && smallerAlpha <= EXACT_SUM_LIMIT) {
     return b.alpha <= a.alpha ? exactProbabilityBBeatsA(a, b) : 1 - exactProbabilityBBeatsA(b, a);
@@ -106,7 +84,6 @@ export function probabilityBBeatsA(a: BetaPosterior, b: BetaPosterior): number {
   return normalCdf((betaMean(b) - betaMean(a)) / sd);
 }
 
-/** Relative lift of B over A with a 95% credible interval (delta method on the log ratio). */
 export function relativeLift(a: BetaPosterior, b: BetaPosterior): { lift: number; interval: [number, number] } {
   const meanA = betaMean(a);
   const meanB = betaMean(b);
@@ -118,11 +95,6 @@ export function relativeLift(a: BetaPosterior, b: BetaPosterior): { lift: number
   };
 }
 
-/**
- * Expected loss (absolute conversion rate) of choosing each arm, using a
- * normal approximation of D = pB - pA: choosing B loses E[max(-D, 0)],
- * choosing A loses E[max(D, 0)].
- */
 export function expectedLoss(a: BetaPosterior, b: BetaPosterior): { chooseA: number; chooseB: number } {
   const mean = betaMean(b) - betaMean(a);
   const sd = Math.sqrt(betaVariance(a) + betaVariance(b));
@@ -134,7 +106,6 @@ export function expectedLoss(a: BetaPosterior, b: BetaPosterior): { chooseA: num
   };
 }
 
-/** Null until both arms have units. */
 export function compareToControl(control: ArmCounts, variant: ArmCounts): VariantStats | null {
   if (control.units <= 0 || variant.units <= 0) return null;
 
@@ -162,7 +133,6 @@ export function compareToControl(control: ArmCounts, variant: ArmCounts): Varian
   };
 }
 
-/** Beyond this multiple of the current sample a difference is too small to call soon. */
 export const MAX_PROJECTION_SCALE = 100;
 
 function decides(control: ArmCounts, variant: ArmCounts, scale: number): boolean {
@@ -173,12 +143,6 @@ function decides(control: ArmCounts, variant: ArmCounts, scale: number): boolean
   return compareToControl(scaled(control), scaled(variant))?.decision !== "inconclusive";
 }
 
-/**
- * How many times the current sample both arms need before compareToControl
- * reaches a decision, if each arm keeps converting at its observed rate. Null
- * when it already has, or when that would take more than maxScale times the
- * current sample (the difference is too small to call soon).
- */
 export function projectedScaleToDecide(
   control: ArmCounts,
   variant: ArmCounts,
@@ -193,7 +157,6 @@ export function projectedScaleToDecide(
     low = high;
     high = Math.min(high * 2, maxScale);
   }
-  // The decision flips once as the sample grows, so bisect to within 1%.
   while (high / low > 1.01) {
     const middle = Math.sqrt(low * high);
     if (decides(control, variant, middle)) high = middle;
@@ -202,8 +165,6 @@ export function projectedScaleToDecide(
   return high;
 }
 
-// Regularized upper incomplete gamma Q(a, x), series below a + 1 and a
-// continued fraction above it (Numerical Recipes gammq).
 function upperIncompleteGamma(a: number, x: number): number {
   if (x <= 0) return 1;
   const logPrefix = -x + a * Math.log(x) - logGamma(a);
@@ -239,21 +200,14 @@ function upperIncompleteGamma(a: number, x: number): number {
   return Math.exp(logPrefix) * h;
 }
 
-/** Survival function of the chi-square distribution. */
 export function chiSquarePValue(statistic: number, degreesOfFreedom: number): number {
   return upperIncompleteGamma(degreesOfFreedom / 2, statistic / 2);
 }
 
-/** Below this p-value the observed split is treated as broken assignment. */
 export const SRM_P_VALUE = 0.001;
 
 export type SampleRatioCheck = { chiSquare: number; pValue: number; mismatch: boolean };
 
-/**
- * Chi-square goodness-of-fit of observed units per arm against the configured
- * split (weights in any unit, e.g. rollout percentages). Null when there is
- * nothing to test: fewer than two weighted arms or no units yet.
- */
 export function sampleRatioMismatch(observed: number[], weights: number[]): SampleRatioCheck | null {
   const arms = observed
     .map((count, index) => ({ count: Math.max(0, count), weight: Math.max(0, weights[index] ?? 0) }))

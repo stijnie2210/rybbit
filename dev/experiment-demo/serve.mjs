@@ -1,8 +1,3 @@
-// Serves the demo page with the experiment's details filled in.
-//
-//   node serve.mjs --site 2 --flag cta-copy --goal signup_clicked
-//
-// Options: --port (4400), --host (http://localhost:3001), --site, --flag, --goal.
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { parseArgs } from "node:util";

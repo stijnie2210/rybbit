@@ -29,7 +29,6 @@ describe("probabilityBBeatsA", () => {
     expect(probabilityBBeatsA(a, b) + probabilityBBeatsA(b, a)).toBeCloseTo(1, 10);
   });
 
-  // Reference values from numerical integration of ∫ f_B(x) F_A(x) dx.
   it.each([
     [10, 100, 15, 100, 0.853284],
     [3, 20, 8, 20, 0.957253],

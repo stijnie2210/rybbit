@@ -35,7 +35,6 @@ export function CompleteExperimentDialog({
   const results = data?.variants ?? [];
   const { control, statsByVariant, leader } = getExperimentVerdict(experiment, results);
   const variantKeys = results.length > 0 ? results.map(result => result.variant) : getVariantKeys(experiment);
-  // Without a clear result, keeping control is the safe default.
   const recommended = leader?.variant ?? control?.variant ?? variantKeys.find(key => key === "control") ?? variantKeys[0];
   const [choice, setChoice] = useState<string | null>(null);
   const selected = choice ?? recommended;

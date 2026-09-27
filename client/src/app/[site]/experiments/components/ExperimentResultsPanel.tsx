@@ -22,7 +22,6 @@ import { ExperimentConversionChart, hasTrend } from "./ExperimentConversionChart
 
 const formatSignedPercent = (value: number) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
 
-// Keeps a near-certain posterior from rounding to a claim of certainty.
 function formatBoundedPercent(value: number, digits: number) {
   const floor = 10 ** -digits;
   const percent = value * 100;
@@ -31,8 +30,6 @@ function formatBoundedPercent(value: number, digits: number) {
   return percent.toFixed(digits);
 }
 
-// Credible interval of the relative lift on a scale shared by every variant,
-// with zero in the middle so "clears zero" reads at a glance.
 function LiftIntervalBar({ interval, lift, domain }: { interval: [number, number]; lift: number; domain: number }) {
   const toPercent = (value: number) => ((Math.max(-domain, Math.min(domain, value)) + domain) / (2 * domain)) * 100;
   const left = toPercent(interval[0]);
@@ -61,7 +58,6 @@ function LiftIntervalBar({ interval, lift, domain }: { interval: [number, number
   );
 }
 
-// "rolledOut" marks a variant that was shipped without the results backing it.
 type VariantTone = "winner" | "leading" | "rolledOut" | "control" | "variant";
 
 function formatWindowInstant(value: string, timeZone: string) {
@@ -320,8 +316,6 @@ export function ExperimentResultsPanel({ experiment }: { experiment: Experiment 
   const totalConversions = data?.totalConversions ?? results.reduce((sum, result) => sum + result.conversions, 0);
   const measurement = data?.measurement ?? "exposure";
 
-  // The variant a completed experiment shipped. It only counts as the winner
-  // when the results picked it too.
   const rolledOut = experiment.winningVariant || null;
   const confirmedWinner = !!rolledOut && leader?.variant === rolledOut;
 

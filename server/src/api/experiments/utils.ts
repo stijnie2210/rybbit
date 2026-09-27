@@ -154,11 +154,6 @@ export function buildExperimentResults(variants: string[], rows: ExperimentResul
   });
 }
 
-/**
- * The flag fields that serve `winner` to everyone the flag targets: every
- * variant list keeps its keys (so payloads and history stay readable) but the
- * winner takes 100%, and no rollout percentage holds traffic back.
- */
 export function rolloutWinner(flag: FeatureFlagRecord, winner: string) {
   const serveWinner = <T extends { key: string; rolloutPercentage: number }>(variants: T[] | null | undefined) =>
     (variants || []).map(variant => ({ ...variant, rolloutPercentage: variant.key === winner ? 100 : 0 }));
@@ -174,11 +169,6 @@ export function rolloutWinner(flag: FeatureFlagRecord, winner: string) {
   };
 }
 
-/**
- * How an experiment's status change drives its flag, or null when the flag is
- * already right. Completing ships `winner`; pausing switches the flag off;
- * starting or resuming switches it back on.
- */
 export function flagUpdateForStatusChange(
   from: ExperimentStatus,
   to: ExperimentStatus,

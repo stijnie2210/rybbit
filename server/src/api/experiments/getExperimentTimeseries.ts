@@ -16,11 +16,8 @@ type DailyRow = { variant: string; day: string; units: number | string; conversi
 
 export type ExperimentTimeseriesPoint = { date: string; units: number; conversions: number; conversionRate: number };
 
-// A daily chart past this length is unreadable and the fill loop unbounded.
 const MAX_DAYS = 366;
 
-// Range bounds are already calendar days in the site's zone; experiment bounds
-// are UTC instants that land on a zone-local day.
 function windowDay(value: string | null, timeZone: string): string | null {
   if (!value) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -28,10 +25,6 @@ function windowDay(value: string | null, timeZone: string): string | null {
   return instant.isValid ? instant.setZone(timeZone).toISODate() : null;
 }
 
-/**
- * Cumulative units, conversions and conversion rate per variant for every day
- * of the window, so each line ends at the rate the results panel shows.
- */
 export function buildCumulativeSeries(
   variants: string[],
   rows: DailyRow[],
@@ -44,8 +37,6 @@ export function buildCumulativeSeries(
   const last = windowDay(window.end, timeZone) ?? (window.mode === "experiment" ? today : dataDays[dataDays.length - 1]);
   if (!first || !last) return variants.map(variant => ({ variant, points: [] }));
 
-  // A long window keeps its most recent days; earlier days still count
-  // towards the running totals, so the last point matches the panel.
   const end = DateTime.fromISO(last < first ? first : last, { zone: "utc" });
   const earliest = end.minus({ days: MAX_DAYS - 1 });
   const start = DateTime.max(DateTime.fromISO(first, { zone: "utc" }), earliest);
@@ -114,7 +105,6 @@ export async function getExperimentTimeseries(
       goalCondition,
     });
 
-    // Same fallback as the results endpoint, so chart and panel agree.
     let measurement: "exposure" | "assignment" = "exposure";
     let rows = await processResults<DailyRow>(
       await clickhouse.query({ query: exposureTimeseriesQuery, format: "JSONEachRow" })

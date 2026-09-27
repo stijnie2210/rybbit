@@ -78,7 +78,6 @@ describe("experiment result queries", () => {
     for (const sql of [exposureQuery, assignmentQuery]) {
       expect(sql.match(/if\(visitor_id != '', visitor_id, session_id\) AS unit/g)).toHaveLength(2);
       expect(sql).toContain("GROUP BY unit");
-      // Visitors behind one IP + UA share a session; count it once per variant.
       expect(sql).toContain("uniqExactArray(u.session_ids) AS sessions");
     }
   });
@@ -156,7 +155,6 @@ describe("buildCumulativeSeries", () => {
       "2026-09-26"
     );
 
-    // 23:30 UTC on the 23rd is already the 24th in Amsterdam.
     expect(series.map(s => s.points.map(p => p.date))).toEqual([
       ["2026-09-24", "2026-09-25", "2026-09-26"],
       ["2026-09-24", "2026-09-25", "2026-09-26"],

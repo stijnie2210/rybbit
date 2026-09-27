@@ -91,7 +91,6 @@ export type ExperimentResults = {
 
 export type ExperimentWindowMode = "experiment" | "range";
 
-/** Bounds are UTC "YYYY-MM-DD HH:MM:SS" in experiment mode, dates in range mode. */
 export type ExperimentWindow = { mode: ExperimentWindowMode; start: string | null; end: string | null };
 
 export type ExperimentTimeseriesPoint = { date: string; units: number; conversions: number; conversionRate: number };

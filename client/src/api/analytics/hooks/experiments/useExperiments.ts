@@ -24,8 +24,6 @@ export function useExperiments() {
   });
 }
 
-// "experiment" measures the experiment's own run and ignores the date
-// selector, so it neither sends nor refetches on the page's window.
 function experimentQuery<T>(
   key: string,
   path: string,
