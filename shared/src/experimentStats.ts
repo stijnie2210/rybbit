@@ -134,7 +134,7 @@ export function expectedLoss(a: BetaPosterior, b: BetaPosterior): { chooseA: num
   };
 }
 
-/** Compare one variant against control. Returns null until both arms have units. */
+/** Null until both arms have units. */
 export function compareToControl(control: ArmCounts, variant: ArmCounts): VariantStats | null {
   if (control.units <= 0 || variant.units <= 0) return null;
 

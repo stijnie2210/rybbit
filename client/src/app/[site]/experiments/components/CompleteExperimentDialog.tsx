@@ -30,7 +30,6 @@ export function CompleteExperimentDialog({
 }) {
   const t = useExtracted();
   const updateMutation = useUpdateExperiment();
-  // Same query (and cache entry) as the panel's default experiment-run view.
   const { data } = useExperimentResults(experiment.experimentId, open && !!experiment.primaryGoalId, "experiment");
 
   const results = data?.variants ?? [];

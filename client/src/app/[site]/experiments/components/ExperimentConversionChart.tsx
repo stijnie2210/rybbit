@@ -9,8 +9,7 @@ import type { ExperimentTimeseries } from "@/api/analytics/endpoints";
 import { ChartTooltip } from "@/components/charts/ChartTooltip";
 import { useNivoTheme } from "@/lib/nivo";
 
-// Control is the neutral reference (gray, dashed); variants take a fixed,
-// validated categorical order by their position in the flag, never by rank.
+// Control is gray and dashed; variants keep a color by position in the flag.
 const CONTROL_COLOR = "hsl(var(--neutral-500))";
 const VARIANT_COLORS = [
   "hsl(var(--indigo-500))",
@@ -62,9 +61,8 @@ function LinesLayer({ series, lineGenerator }: LineCustomSvgLayerProps<Series>) 
 
 const LABEL_GAP = 13;
 
-// Direct labels at each line's end, in text ink with a colored tick for
-// identity, nudged apart when lines end close together and kept inside the
-// plot. A one-day line has no segment to draw, so it gets an end dot.
+// Labels at each line's end, nudged apart so they don't overlap. A one-day
+// line has no segment to draw, so it gets a dot.
 function EndLabelsLayer({ series, innerHeight }: LineCustomSvgLayerProps<Series>) {
   const ends = series
     .map(line => ({ line, last: line.data[line.data.length - 1] }))
@@ -134,8 +132,6 @@ export function ExperimentConversionChart({
     [data, variants, controlVariant]
   );
 
-  // Every variant carries every day of the window; a time axis keeps them in
-  // order even though each line starts at its own first visitor.
   const days = (data.variants[0]?.points.map(point => point.date) ?? []).map(toDate);
   if (days.length === 0 || series.every(line => line.data.length === 0)) return null;
 

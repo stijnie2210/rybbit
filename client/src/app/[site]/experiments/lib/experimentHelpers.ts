@@ -69,7 +69,6 @@ export function getControlResult(results: ExperimentVariantResult[]): Experiment
   return results.find(result => result.isControl) || results[0];
 }
 
-// Bayesian comparison of a variant against control (Beta(1,1) prior per arm).
 export function getVariantStats(
   control: ExperimentVariantResult | undefined,
   variant: ExperimentVariantResult
@@ -136,17 +135,9 @@ export function hasEnoughData(results: ExperimentVariantResult[], servedVariants
   );
 }
 
-/**
- * Everything the results panel and the completion dialog judge an experiment
- * by: per-variant stats against control, the split check, and the arm that is
- * ahead (a winning variant, or control when every variant loses). A broken
- * split invalidates the comparison, so then nothing is ahead. Without enough
- * data there are no stats and nothing is ahead.
- *
- * While undecided, `remainingUnits` estimates how many more units (across all
- * variants) the variant closest to a decision needs if every arm keeps its
- * current rate; null when no variant would decide within a reasonable sample.
- */
+// `leader` is a winning variant, or control when every variant loses; nothing
+// leads on a broken split or without enough data. `remainingUnits` estimates
+// the extra units needed for a decision at current rates.
 export function getExperimentVerdict(experiment: Experiment, results: ExperimentVariantResult[]) {
   const control = getControlResult(results);
   // Completing rolls the winner out and turns every other arm to 0%, so a

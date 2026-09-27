@@ -65,11 +65,7 @@ export async function updateExperiment(
       Object.assign(updateData, timestampsForStatus(body.status, existing));
     }
 
-    // The experiment's status drives its flag. Completing ships the winner to
-    // everyone the flag targets. Pausing switches the flag off, so visitors get
-    // the code's fallback and no new exposures are recorded; starting or
-    // resuming switches it back on, and deterministic bucketing returns each
-    // visitor to the variant they had before.
+    // Resuming is safe: bucketing is deterministic, so visitors get their old variant back.
     const isCompleting = body.status === "completed" && existing.status !== "completed";
 
     let flag: typeof featureFlags.$inferSelect | undefined;
