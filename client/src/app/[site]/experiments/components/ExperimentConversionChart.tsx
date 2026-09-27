@@ -19,7 +19,7 @@ const VARIANT_COLORS = [
   "hsl(var(--pink-600))",
 ];
 
-type SeriesDatum = { x: string; y: number; units: number; conversions: number };
+type SeriesDatum = { x: Date; y: number; units: number; conversions: number };
 type Series = LineSeries & { id: string; color: string; isControl: boolean; data: SeriesDatum[] };
 
 // A trend needs at least two days with visitors; one day is just the totals again.
@@ -29,6 +29,9 @@ export function hasTrend(data: ExperimentTimeseries) {
   );
   return days.size >= 2;
 }
+
+// Local midnight, so a day lands on its own tick whatever the viewer's zone.
+const toDate = (day: string) => DateTime.fromISO(day).toJSDate();
 
 export function getVariantColor(variant: string, variants: string[], controlVariant: string | undefined) {
   if (variant === controlVariant) return CONTROL_COLOR;
@@ -122,7 +125,7 @@ export function ExperimentConversionChart({
         data: points
           .filter(point => point.units > 0)
           .map(point => ({
-            x: point.date,
+            x: toDate(point.date),
             y: point.conversionRate * 100,
             units: point.units,
             conversions: point.conversions,
@@ -131,7 +134,9 @@ export function ExperimentConversionChart({
     [data, variants, controlVariant]
   );
 
-  const days = data.variants[0]?.points.map(point => point.date) ?? [];
+  // Every variant carries every day of the window; a time axis keeps them in
+  // order even though each line starts at its own first visitor.
+  const days = (data.variants[0]?.points.map(point => point.date) ?? []).map(toDate);
   if (days.length === 0 || series.every(line => line.data.length === 0)) return null;
 
   const maxY = Math.max(1, ...series.flatMap(line => line.data.map(point => Number(point.y)))) * 1.15;
@@ -171,14 +176,14 @@ export function ExperimentConversionChart({
           data={series}
           theme={nivoTheme}
           margin={{ top: 8, right: labelWidth, bottom: 24, left: 40 }}
-          xScale={{ type: "point" }}
+          xScale={{ type: "time", format: "native", precision: "day", min: days[0], max: days[days.length - 1] }}
           yScale={{ type: "linear", min: 0, max: maxY }}
           colors={line => line.color}
           axisBottom={{
             tickSize: 0,
             tickPadding: 8,
             tickValues: days.filter((_, index) => index % tickEvery === 0),
-            format: value => DateTime.fromISO(String(value)).toFormat("MMM d"),
+            format: value => DateTime.fromJSDate(value as Date).toFormat("MMM d"),
           }}
           axisLeft={{ tickSize: 0, tickPadding: 8, tickValues: 4, format: value => `${Number(value).toFixed(yDecimals)}%` }}
           gridYValues={4}
@@ -190,7 +195,7 @@ export function ExperimentConversionChart({
             <ChartTooltip>
               <div className="p-2 text-xs">
                 <div className="mb-1.5 font-medium text-neutral-700 dark:text-neutral-200">
-                  {DateTime.fromISO(String(slice.points[0]?.data.x)).toFormat("EEE, MMM d")}
+                  {DateTime.fromJSDate(slice.points[0]?.data.x as Date).toFormat("EEE, MMM d")}
                 </div>
                 <div className="grid gap-1">
                   {slice.points.map(point => {

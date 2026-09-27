@@ -175,6 +175,23 @@ describe("buildCumulativeSeries", () => {
 
     expect(series[0].points.map(p => p.date)).toEqual(["2026-09-20", "2026-09-21"]);
   });
+
+  it("keeps the most recent days of a long window and carries earlier totals", () => {
+    const series = buildCumulativeSeries(
+      ["control"],
+      [
+        { variant: "control", day: "2024-01-01", units: 10, conversions: 5 },
+        { variant: "control", day: "2026-09-26", units: 10, conversions: 1 },
+      ],
+      { mode: "range", start: null, end: null },
+      "UTC"
+    );
+
+    const points = series[0].points;
+    expect(points).toHaveLength(366);
+    expect(points[points.length - 1]).toEqual({ date: "2026-09-26", units: 20, conversions: 6, conversionRate: 0.3 });
+    expect(points[0]).toMatchObject({ date: "2025-09-26", units: 10, conversions: 5 });
+  });
 });
 
 describe("buildExperimentResults", () => {

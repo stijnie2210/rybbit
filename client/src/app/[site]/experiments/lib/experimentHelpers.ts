@@ -81,16 +81,27 @@ export function getVariantStats(
   );
 }
 
+type VariantSplit = { key: string; rolloutPercentage: number }[];
+
+// The split each condition set serves. Like the flag evaluator, a set without
+// its own variants serves the flag's top-level variants.
+function getVariantSplits(experiment: Experiment): VariantSplit[] {
+  const flagVariants = experiment.featureFlag.variants || [];
+  const conditionSets = experiment.featureFlag.conditionSets || [];
+  const splits = conditionSets.map(conditionSet =>
+    conditionSet.variants?.length ? conditionSet.variants : flagVariants
+  );
+  if (conditionSets.length === 0) splits.push(flagVariants);
+  return splits.filter(split => split.length > 0);
+}
+
 // The configured split per variant, or null when condition sets split traffic
 // differently: then no single expected ratio exists to test against.
 export function getVariantWeights(experiment: Experiment): Record<string, number> | null {
-  const splits = (experiment.featureFlag.conditionSets || [])
-    .map(conditionSet => conditionSet.variants || [])
-    .filter(variants => variants.length > 0);
-  if (splits.length === 0 && experiment.featureFlag.variants?.length) splits.push(experiment.featureFlag.variants);
+  const splits = getVariantSplits(experiment);
   if (splits.length === 0) return null;
 
-  const toWeights = (variants: { key: string; rolloutPercentage: number }[]) =>
+  const toWeights = (variants: VariantSplit) =>
     Object.fromEntries(variants.map(variant => [variant.key, Number(variant.rolloutPercentage) || 0]));
   const [first, ...rest] = splits.map(toWeights);
   const sameSplit = rest.every(
@@ -101,15 +112,26 @@ export function getVariantWeights(experiment: Experiment): Record<string, number
   return sameSplit ? first : null;
 }
 
+// Variants that currently get traffic in at least one condition set. An arm
+// turned down to 0% stops collecting units, so it can't hold back the results.
+export function getServedVariants(experiment: Experiment): Set<string> {
+  return new Set(
+    getVariantSplits(experiment).flatMap(split =>
+      split.filter(variant => (Number(variant.rolloutPercentage) || 0) > 0).map(variant => variant.key)
+    )
+  );
+}
+
 // Below these the posteriors are mostly prior, and chance-to-beat-control and
 // lift ranges swing too much to be worth showing.
 export const MIN_UNITS_PER_VARIANT = 100;
 export const MIN_CONVERSIONS = 10;
 
-export function hasEnoughData(results: ExperimentVariantResult[]) {
+export function hasEnoughData(results: ExperimentVariantResult[], servedVariants?: Set<string>) {
+  const served = servedVariants?.size ? results.filter(result => servedVariants.has(result.variant)) : results;
   return (
-    results.length > 1 &&
-    results.every(result => result.units >= MIN_UNITS_PER_VARIANT) &&
+    served.length > 1 &&
+    served.every(result => result.units >= MIN_UNITS_PER_VARIANT) &&
     results.reduce((sum, result) => sum + result.conversions, 0) >= MIN_CONVERSIONS
   );
 }
@@ -127,7 +149,12 @@ export function hasEnoughData(results: ExperimentVariantResult[]) {
  */
 export function getExperimentVerdict(experiment: Experiment, results: ExperimentVariantResult[]) {
   const control = getControlResult(results);
-  const enoughData = hasEnoughData(results);
+  // Completing rolls the winner out and turns every other arm to 0%, so a
+  // finished experiment is judged on all of its arms.
+  const enoughData = hasEnoughData(
+    results,
+    experiment.status === "completed" ? undefined : getServedVariants(experiment)
+  );
   const statsByVariant = new Map(
     results.map(result => [result.variant, enoughData ? getVariantStats(control, result) : null])
   );

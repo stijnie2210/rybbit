@@ -44,12 +44,14 @@ export function buildCumulativeSeries(
   const last = windowDay(window.end, timeZone) ?? (window.mode === "experiment" ? today : dataDays[dataDays.length - 1]);
   if (!first || !last) return variants.map(variant => ({ variant, points: [] }));
 
-  const days: string[] = [];
-  let cursor = DateTime.fromISO(first, { zone: "utc" });
+  // A long window keeps its most recent days; earlier days still count
+  // towards the running totals, so the last point matches the panel.
   const end = DateTime.fromISO(last < first ? first : last, { zone: "utc" });
-  while (cursor <= end && days.length < MAX_DAYS) {
+  const earliest = end.minus({ days: MAX_DAYS - 1 });
+  const start = DateTime.max(DateTime.fromISO(first, { zone: "utc" }), earliest);
+  const days: string[] = [];
+  for (let cursor = start; cursor <= end; cursor = cursor.plus({ days: 1 })) {
     days.push(cursor.toISODate()!);
-    cursor = cursor.plus({ days: 1 });
   }
 
   const allVariants = [...variants];
@@ -60,6 +62,11 @@ export function buildCumulativeSeries(
   return allVariants.map(variant => {
     let units = 0;
     let conversions = 0;
+    for (const row of rows) {
+      if (row.variant !== variant || row.day < first || row.day >= days[0]) continue;
+      units += Number(row.units);
+      conversions += Number(row.conversions);
+    }
     return {
       variant,
       points: days.map(date => {
