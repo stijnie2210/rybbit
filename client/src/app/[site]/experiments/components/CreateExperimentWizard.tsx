@@ -357,6 +357,8 @@ export function CreateExperimentWizard({
   const [flagKeyTouched, setFlagKeyTouched] = useState(false);
   const [goalNameTouched, setGoalNameTouched] = useState(false);
   const isEditing = !!experiment;
+  // Visitors are already assigned by this flag, so the server keeps it once started.
+  const assignmentLocked = !!experiment && experiment.status !== "draft";
 
   const usedFlagIds = useMemo(
     () =>
@@ -650,7 +652,7 @@ export function CreateExperimentWizard({
       let flagKey = selectedFlag?.key || form.flagKey.trim();
       let variantKeys = selectedFlag ? getVariantKeys(selectedFlag) : form.variants.map(variant => variant.key.trim());
 
-      if (form.assignmentMode === "new") {
+      if (form.assignmentMode === "new" && !assignmentLocked) {
         const variants: FeatureFlagVariant[] = form.variants.map(variant => ({
           key: variant.key.trim(),
           name: variant.name.trim() || undefined,
@@ -660,7 +662,7 @@ export function CreateExperimentWizard({
         const createdFlag = await createFeatureFlagMutation.mutateAsync({
           key: form.flagKey.trim(),
           description: form.flagDescription.trim() || `Assignment flag for ${form.name.trim()}`,
-          enabled: experiment.status === "running",
+          enabled: false,
           runtime: "client",
           flagType: "multivariate",
           payload: null,
@@ -759,6 +761,20 @@ export function CreateExperimentWizard({
               placeholder={t("Optional notes for this experiment")}
             />
           </div>
+        </div>
+      );
+    }
+
+    if (step === "assignment" && assignmentLocked && experiment) {
+      return (
+        <div className="grid gap-1.5">
+          <Label>{t("Assignment flag")}</Label>
+          <div className="rounded-md border border-neutral-150 bg-neutral-50 px-3 py-2 font-mono text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900/40 dark:text-neutral-100">
+            {experiment.featureFlag.key}
+          </div>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            {t("The flag can't change once the experiment has started, because visitors are already assigned.")}
+          </p>
         </div>
       );
     }
