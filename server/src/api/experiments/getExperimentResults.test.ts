@@ -10,7 +10,13 @@ vi.mock("../../db/postgres/postgres.js", () => ({
 import { getTimeStatement } from "../analytics/utils/timeWindow.js";
 import { buildExperimentResultQueries, EXPERIMENT_UNIT, resolveExperimentWindow } from "./getExperimentResults.js";
 import { buildCumulativeSeries } from "./getExperimentTimeseries.js";
-import { buildExperimentResults, flagUpdateForStatusChange, rolloutWinner } from "./utils.js";
+import {
+  buildExperimentResults,
+  experimentFlagError,
+  flagUpdateForStatusChange,
+  rolloutWinner,
+  SERVER_ONLY_FLAG_ERROR,
+} from "./utils.js";
 
 const CAMPAIGN_FILTER = JSON.stringify([{ parameter: "utm_campaign", type: "equals", value: ["recipe_book_2026"] }]);
 
@@ -282,5 +288,22 @@ describe("flagUpdateForStatusChange", () => {
       { key: "control", rolloutPercentage: 0 },
       { key: "test", rolloutPercentage: 100 },
     ]);
+  });
+});
+
+describe("experimentFlagError", () => {
+  it("accepts multivariate flags evaluated on the client", () => {
+    expect(experimentFlagError({ flagType: "multivariate", runtime: "client" })).toBeNull();
+    expect(experimentFlagError({ flagType: "multivariate", runtime: "both" })).toBeNull();
+  });
+
+  it("rejects server-only flags, which the tracking script never receives", () => {
+    expect(experimentFlagError({ flagType: "multivariate", runtime: "server" })).toBe(SERVER_ONLY_FLAG_ERROR);
+  });
+
+  it("rejects flags that aren't multivariate", () => {
+    expect(experimentFlagError({ flagType: "boolean", runtime: "client" })).toBe(
+      "Experiments require a multivariate feature flag"
+    );
   });
 });
