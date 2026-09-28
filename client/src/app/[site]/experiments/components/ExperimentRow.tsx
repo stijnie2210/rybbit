@@ -2,6 +2,16 @@
 
 import type { Experiment, ExperimentStatus } from "@/api/analytics/endpoints";
 import { useDeleteExperiment, useUpdateExperiment } from "@/api/analytics/hooks/experiments/useExperiments";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,11 +22,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
-import { Flag, MoreHorizontal, Pause, Pencil, Play, Square, Target, Trash2, Trophy } from "lucide-react";
+import { Flag, MoreHorizontal, Pause, Pencil, Play, Rocket, Square, Target, Trash2 } from "lucide-react";
 import { useExtracted } from "next-intl";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { formatRelativeTime } from "../lib/experimentHelpers";
+import { CompleteExperimentDialog } from "./CompleteExperimentDialog";
 import { ExperimentDialog } from "./ExperimentDialog";
 import { ExperimentResultsPanel } from "./ExperimentResultsPanel";
 import { StatusBadge } from "./StatusBadge";
@@ -35,6 +46,8 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
   const deleteMutation = useDeleteExperiment();
   const updateMutation = useUpdateExperiment();
   const [editOpen, setEditOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
   const primaryGoalName =
     experiment.primaryGoal?.name || (experiment.primaryGoalId ? t("Untitled goal") : t("No goal"));
 
@@ -85,8 +98,11 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
             <h3 className="truncate text-base font-medium text-neutral-900 dark:text-neutral-50">{experiment.name}</h3>
             <StatusBadge status={experiment.status} />
             {experiment.winningVariant && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                <Trophy className="h-3 w-3" />
+              <span
+                title={t("Rolled out {variant}", { variant: experiment.winningVariant })}
+                className="inline-flex items-center gap-1 rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+              >
+                <Rocket className="h-3 w-3" />
                 <span className="font-mono">{experiment.winningVariant}</span>
               </span>
             )}
@@ -109,14 +125,14 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
           {experiment.status !== "running" && experiment.status !== "completed" && (
             <Button size="sm" onClick={() => setStatus("running")} disabled={updateMutation.isPending}>
               <Play className="h-3.5 w-3.5" />
-              {t("Start")}
+              {experiment.status === "paused" ? t("Resume") : t("Start")}
             </Button>
           )}
           {experiment.status === "running" && (
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => setStatus("paused")}
+              onClick={() => setPauseOpen(true)}
               disabled={updateMutation.isPending}
             >
               <Pause className="h-3.5 w-3.5" />
@@ -127,7 +143,7 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => setStatus("completed")}
+              onClick={() => setCompleteOpen(true)}
               disabled={updateMutation.isPending}
             >
               <Square className="h-3.5 w-3.5" />
@@ -164,6 +180,26 @@ export function ExperimentRow({ experiment, experiments }: { experiment: Experim
       </div>
 
       <ExperimentDialog experiment={experiment} experiments={experiments} open={editOpen} onOpenChange={setEditOpen} />
+      <CompleteExperimentDialog experiment={experiment} open={completeOpen} onOpenChange={setCompleteOpen} />
+      <AlertDialog open={pauseOpen} onOpenChange={setPauseOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("Pause experiment?")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "Pausing switches the {flagKey} flag off, so every visitor gets the fallback in your code and no new exposures are recorded. Anything else that reads this flag is switched off too. Resuming switches it back on and returns visitors to their variants.",
+                { flagKey: experiment.featureFlag.key }
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setStatus("paused")} disabled={updateMutation.isPending}>
+              {t("Pause")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
