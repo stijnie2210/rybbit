@@ -4,20 +4,101 @@ import { useExtracted } from "next-intl";
 import { useState } from "react";
 import { toast } from "@/components/ui/sonner";
 import { useOrganizationInvitations } from "../../../../api/admin/hooks/useOrganizations";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../../../../components/ui/alert-dialog";
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../components/ui/table";
 import { authClient } from "../../../../lib/auth";
+import { useRoleInfo } from "../../../../lib/roles";
 
 interface InvitationsProps {
   organizationId: string;
-  isOwner: boolean;
+  /** Cancel pending invitations (members:manage). */
+  canManage: boolean;
 }
 
-export function Invitations({ organizationId, isOwner }: InvitationsProps) {
+function CancelInvitationButton({
+  invitation,
+  onCancelled,
+}: {
+  invitation: { id: string; email: string };
+  onCancelled: () => void;
+}) {
   const t = useExtracted();
-  const [loadingInvitationId, setLoadingInvitationId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancel = async () => {
+    setIsCancelling(true);
+    try {
+      // better-auth reports failures in the result rather than throwing.
+      const { error } = await authClient.organization.cancelInvitation({
+        invitationId: invitation.id,
+      });
+      if (error) {
+        throw new Error(error.message || t("Failed to cancel invitation"));
+      }
+      toast.success(t("Invitation cancelled"));
+      setOpen(false);
+      onCancelled();
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : t("Failed to cancel invitation"));
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={next => {
+        if (!isCancelling) setOpen(next);
+      }}
+    >
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="default"
+          size="sm"
+          aria-label={t("Cancel invitation for {email}", { email: invitation.email })}
+        >
+          {t("Cancel")}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("Cancel this invitation?")}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {t("The invitation sent to {email} will stop working. You can invite them again later.", {
+              email: invitation.email,
+            })}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isCancelling}>{t("Keep invitation")}</AlertDialogCancel>
+          {/* A plain Button, not AlertDialogAction, so the dialog stays open until the request settles
+              (handleCancel closes it on success). `loading` keeps its width while pending. */}
+          <Button variant="destructive" loading={isCancelling} loadingLabel={t("Cancelling...")} onClick={handleCancel}>
+            {t("Cancel invitation")}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+export function Invitations({ organizationId, canManage }: InvitationsProps) {
+  const t = useExtracted();
+  const roleInfo = useRoleInfo();
 
   const {
     data: invitations,
@@ -25,21 +106,6 @@ export function Invitations({ organizationId, isOwner }: InvitationsProps) {
     isLoading: invitationsLoading,
   } = useOrganizationInvitations(organizationId);
   const pendingInvitations = invitations?.filter(invitation => invitation.status === "pending") ?? [];
-
-  const handleCancelInvitation = async (invitationId: string) => {
-    try {
-      setLoadingInvitationId(invitationId);
-      await authClient.organization.cancelInvitation({
-        invitationId,
-      });
-      toast.success(t("Invitation cancelled"));
-      refetchInvitations();
-    } catch (error: any) {
-      toast.error(error.message || t("Failed to cancel invitation"));
-    } finally {
-      setLoadingInvitationId(null);
-    }
-  };
 
   return (
     <Card className="w-full">
@@ -54,7 +120,7 @@ export function Invitations({ organizationId, isOwner }: InvitationsProps) {
               <TableHead>{t("Role")}</TableHead>
               <TableHead>{t("Status")}</TableHead>
               <TableHead>{t("Expires")}</TableHead>
-              {isOwner && <TableHead className="w-12">{t("Actions")}</TableHead>}
+              {canManage && <TableHead className="w-12">{t("Actions")}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -74,7 +140,7 @@ export function Invitations({ organizationId, isOwner }: InvitationsProps) {
                   <TableCell>
                     <div className="h-4 bg-muted animate-pulse rounded w-20"></div>
                   </TableCell>
-                  {isOwner && (
+                  {canManage && (
                     <TableCell>
                       <div className="h-8 bg-muted animate-pulse rounded w-16 ml-auto"></div>
                     </TableCell>
@@ -87,26 +153,17 @@ export function Invitations({ organizationId, isOwner }: InvitationsProps) {
                   pendingInvitations.map(invitation => (
                     <TableRow key={invitation.id}>
                       <TableCell>{invitation.email}</TableCell>
-                      <TableCell className="capitalize">
-                        {invitation.role === "admin" ? t("Admin") : invitation.role === "owner" ? t("Owner") : t("Member")}
-                      </TableCell>
+                      <TableCell className="capitalize">{roleInfo(invitation.role).label}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">{t("Pending")}</Badge>
                       </TableCell>
                       <TableCell>
                         {DateTime.fromJSDate(new Date(invitation.expiresAt)).toLocaleString(DateTime.DATE_SHORT)}
                       </TableCell>
-                      {isOwner && (
+                      {canManage && (
                         <TableCell className="text-right">
                           {invitation.status === "pending" && (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              disabled={loadingInvitationId === invitation.id}
-                              onClick={() => handleCancelInvitation(invitation.id)}
-                            >
-                              {loadingInvitationId === invitation.id ? t("Processing...") : t("Cancel")}
-                            </Button>
+                            <CancelInvitationButton invitation={invitation} onCancelled={refetchInvitations} />
                           )}
                         </TableCell>
                       )}
@@ -114,7 +171,7 @@ export function Invitations({ organizationId, isOwner }: InvitationsProps) {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={isOwner ? 5 : 4} className="text-center py-6 text-muted-foreground">
+                    <TableCell colSpan={canManage ? 5 : 4} className="text-center py-6 text-muted-foreground">
                       {t("No pending invitations")}
                     </TableCell>
                   </TableRow>

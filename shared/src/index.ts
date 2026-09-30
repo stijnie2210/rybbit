@@ -9,3 +9,4 @@ export * from "./performance";
 export * from "./aiOperators";
 export * from "./annotations";
 export * from "./experimentStats";
+export * from "./permissions";

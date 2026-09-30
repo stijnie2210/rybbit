@@ -20,9 +20,11 @@ import { resolvePropertyFilters, targetTypeToEventType } from "../../../../lib/e
 interface FunnelRowProps {
   funnel: SavedFunnel;
   index: number;
+  /** funnels:write: edit, clone and delete. */
+  canWrite: boolean;
 }
 
-export function FunnelRow({ funnel, index }: FunnelRowProps) {
+export function FunnelRow({ funnel, index, canWrite }: FunnelRowProps) {
   const t = useExtracted();
 
   const stepTypeLabels: Record<FunnelStepType, string> = {
@@ -53,8 +55,8 @@ export function FunnelRow({ funnel, index }: FunnelRowProps) {
       : undefined
   );
 
-  // Delete funnel mutation
-  const { mutate: deleteFunnel, isPending: isDeleting } = useDeleteFunnel();
+  // Delete funnel mutation. mutateAsync so the modal waits for the server and shows its errors.
+  const { mutateAsync: deleteFunnel, isPending: isDeleting } = useDeleteFunnel();
 
   // Handle expansion
   const handleExpand = () => {
@@ -123,56 +125,60 @@ export function FunnelRow({ funnel, index }: FunnelRowProps) {
 
         <div className="flex items-center gap-4">
           <div className="flex">
-            {/* Edit button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={e => {
-                    e.stopPropagation();
-                    setIsEditModalOpen(true);
-                  }}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t("Edit Funnel")}</TooltipContent>
-            </Tooltip>
+            {canWrite && (
+              <>
+                {/* Edit button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setIsEditModalOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("Edit Funnel")}</TooltipContent>
+                </Tooltip>
 
-            {/* Clone button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={e => {
-                    e.stopPropagation();
-                    setIsCloneModalOpen(true);
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t("Clone Funnel")}</TooltipContent>
-            </Tooltip>
+                {/* Clone button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setIsCloneModalOpen(true);
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("Clone Funnel")}</TooltipContent>
+                </Tooltip>
 
-            {/* Delete button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={e => {
-                    e.stopPropagation();
-                    setIsDeleteModalOpen(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t("Delete Funnel")}</TooltipContent>
-            </Tooltip>
+                {/* Delete button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setIsDeleteModalOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("Delete Funnel")}</TooltipContent>
+                </Tooltip>
+              </>
+            )}
 
             <Button variant="ghost" size="icon" onClick={handleExpand}>
               {expanded ? <ChevronUp strokeWidth={3} /> : <ChevronDown strokeWidth={3} />}
@@ -210,6 +216,7 @@ export function FunnelRow({ funnel, index }: FunnelRowProps) {
         primaryAction={{
           children: isDeleting ? t("Deleting...") : t("Delete"),
           variant: "destructive",
+          disabled: isDeleting,
         }}
       />
 
