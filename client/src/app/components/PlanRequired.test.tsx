@@ -5,8 +5,8 @@ import { PlanRequiredNotice, useCheckoutReturn } from "./PlanRequired";
 
 const mocks = vi.hoisted(() => ({
   useStripeSubscription: vi.fn(),
-  organizations: { data: [{ id: "org_b", role: "owner" }], isLoading: false } as {
-    data: { id: string; role: string }[] | undefined;
+  organizations: { data: [{ id: "org_b", role: "owner", permissions: ["billing:manage"] }], isLoading: false } as {
+    data: { id: string; role: string; permissions: string[] }[] | undefined;
     isLoading: boolean;
   },
   search: "",
@@ -23,7 +23,7 @@ vi.mock("@/api/admin/hooks/useOrganizationMembers", () => ({ useOrganizationMemb
 vi.mock("@/lib/subscription/useStripeSubscription", () => ({ useStripeSubscription: mocks.useStripeSubscription }));
 
 beforeEach(() => {
-  mocks.organizations = { data: [{ id: "org_b", role: "owner" }], isLoading: false };
+  mocks.organizations = { data: [{ id: "org_b", role: "owner", permissions: ["billing:manage"] }], isLoading: false };
   mocks.useStripeSubscription.mockReturnValue({ data: { trialEligible: true }, isLoading: false });
   mocks.search = "";
 });

@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { deleteSite, moveSite, updateSiteConfig, SiteResponse } from "@/api/admin/endpoints";
 import { adminMoveSite } from "@/api/admin/endpoints/adminSites";
@@ -33,10 +34,16 @@ import { RemoteOrganizationCombobox } from "@/app/admin/components/shared/Remote
 import { normalizeDomain } from "@/lib/utils";
 
 import { SettingRow, SettingsSection, SettingsSections } from "./SettingsSection";
+import { TransferSiteSection } from "./TransferSiteSection";
 
 interface GeneralTabProps {
   siteMetadata: SiteResponse;
+  /** No sites:configure: the name, domain and privacy settings are read-only. */
   disabled?: boolean;
+  /** sites:delete on this site. */
+  canDelete?: boolean;
+  /** sites:transfer on this site. */
+  canTransfer?: boolean;
   onClose?: () => void;
   onPublicChange?: (checked: boolean) => void;
   adminMode?: boolean;
@@ -57,6 +64,8 @@ interface ToggleConfig {
 export function GeneralTab({
   siteMetadata,
   disabled = false,
+  canDelete = false,
+  canTransfer = false,
   onClose,
   onPublicChange,
   adminMode = false,
@@ -78,10 +87,10 @@ export function GeneralTab({
   const [targetOrgName, setTargetOrgName] = useState("");
   const [isMoving, setIsMoving] = useState(false);
 
-  // Organizations the user can move the site into: those they administer,
-  // excluding the site's current organization.
+  // Organizations the user can move the site into: those they may create
+  // sites in, excluding the site's current organization.
   const moveTargets = (userOrganizations ?? []).filter(
-    org => (org.role === "admin" || org.role === "owner") && org.id !== siteMetadata.organizationId
+    org => org.permissions?.includes("sites:create") && org.id !== siteMetadata.organizationId
   );
 
   const [toggleStates, setToggleStates] = useState({
@@ -345,7 +354,7 @@ export function GeneralTab({
         ))}
       </SettingsSection>
 
-      {!disabled && (adminMode || moveTargets.length > 0) && (
+      {canTransfer && (adminMode || moveTargets.length > 0) && (
         <SettingsSection
           title={t("Move to Organization")}
           description={t(
@@ -411,6 +420,9 @@ export function GeneralTab({
         </SettingsSection>
       )}
 
+      {/* A person-to-person hand-off; the admin panel moves sites directly instead. */}
+      {canTransfer && !adminMode && <TransferSiteSection siteId={siteMetadata.siteId} />}
+
       <SettingsSection>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 px-4 py-3 dark:border-red-500/25">
           <div>
@@ -420,12 +432,27 @@ export function GeneralTab({
             </p>
           </div>
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={disabled}>
-                <AlertTriangle className="h-4 w-4" />
-                {t("Delete Site")}
-              </Button>
-            </AlertDialogTrigger>
+            {canDelete ? (
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  {t("Delete Site")}
+                </Button>
+              </AlertDialogTrigger>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* A disabled button gets no pointer events, so the tooltip hangs off this wrapper. */}
+                  <span tabIndex={0} className="inline-flex">
+                    <Button variant="destructive" disabled>
+                      <AlertTriangle className="h-4 w-4" />
+                      {t("Delete Site")}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t("Your role can't delete sites")}</TooltipContent>
+              </Tooltip>
+            )}
             <AlertDialogContent
               onEscapeKeyDown={event => {
                 if (isDeleting) event.preventDefault();

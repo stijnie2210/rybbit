@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { db } from "../../db/postgres/postgres.js";
 import { organization, sites } from "../../db/postgres/schema.js";
-import { getUserHasAdminAccessToSite } from "../../lib/auth-utils.js";
+import { isAdminRole, permissionsForRole } from "@rybbit/shared";
+import { getUserSiteRole } from "../../lib/auth-utils.js";
 import { getBestSubscription, siteRequiresPlan } from "../../lib/subscriptionUtils.js";
 
 /**
@@ -42,8 +43,9 @@ export async function getSite(request: FastifyRequest<GetSiteParams>, reply: Fas
       return reply.status(404).send({ error: "Site not found" });
     }
 
-    const [isOwner, requiresPlan] = await Promise.all([
-      getUserHasAdminAccessToSite(request, site.siteId),
+    // The caller's role on the site; null for public and private-link viewers.
+    const [role, requiresPlan] = await Promise.all([
+      getUserSiteRole(request, site.siteId),
       getSiteRequiresPlan(site),
     ]);
 
@@ -64,7 +66,10 @@ export async function getSite(request: FastifyRequest<GetSiteParams>, reply: Fas
       blockBots: site.blockBots,
       firstPartyProxy: site.firstPartyProxy,
       trackIp: site.trackIp,
-      isOwner: isOwner,
+      isOwner: isAdminRole(role),
+      role,
+      // What that role allows here (a bearer credential's scopes may narrow it).
+      permissions: permissionsForRole(role),
       requiresPlan,
       // Analytics features
       sessionReplay: site.sessionReplay,

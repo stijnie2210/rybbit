@@ -29,10 +29,11 @@ export function usePlanPrompt(organizationId: string | undefined) {
   // This organization's subscription, not the active one's: a dashboard can belong to another
   // organization the person is in, and only that one's history decides whether a trial is on offer.
   const { data: subscription, isLoading: isLoadingSubscription } = useStripeSubscription(organizationId);
-  const role = organizations?.find(org => org.id === organizationId)?.role;
+  const permissions = organizations?.find(org => org.id === organizationId)?.permissions;
   return {
     isLoading: isLoadingOrganizations || isLoadingSubscription,
-    isOwner: role === "owner",
+    // Starting a plan is billing, which the server lets owners (and system admins) do.
+    isOwner: !!permissions?.includes("billing:manage"),
     trialEligible: subscription?.trialEligible !== false,
   };
 }
