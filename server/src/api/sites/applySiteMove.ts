@@ -3,6 +3,7 @@ import { db } from "../../db/postgres/postgres.js";
 import { memberSiteAccess, segments, sites, teamSiteAccess } from "../../db/postgres/schema.js";
 import type { SiteTransaction } from "../../services/sites/withOrganizationSiteLock.js";
 import { invalidateSitesAccessCache } from "../../lib/auth-utils.js";
+import { usageService } from "../../services/usageService.js";
 
 /**
  * Reassigns a site to a different organization and clears the access grants
@@ -50,4 +51,9 @@ export async function invalidateSiteMoveAccess(sourceOrganizationId: string | nu
   for (const { userId } of affectedMembers) {
     invalidateSitesAccessCache(userId);
   }
+  // The moved site now follows the target organization's plan. Refreshing the source too marks
+  // it as newer than any cron run already holding the old ownership, which would otherwise
+  // re-apply the source organization's blocks to the moved site.
+  usageService.requestOrganizationRefresh(targetOrganizationId);
+  usageService.requestOrganizationRefresh(sourceOrganizationId);
 }
